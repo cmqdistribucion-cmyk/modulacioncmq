@@ -18,6 +18,7 @@ type Row = {
   bultos: number | null;
   comentario: string | null;
   actualizacion: "rechazado" | "pendiente" | "entregado" | null;
+  created_by_email: string | null;
 };
 
 const OPTIONS: Array<Row["actualizacion"]> = ["pendiente", "entregado", "rechazado"];
@@ -218,6 +219,7 @@ export default function ActualizacionPage() {
                 <thead className="sticky top-0 bg-background shadow-sm">
                   <tr className="border-b border-border">
                     <th className="px-3 py-2">Fecha</th>
+                    <th className="px-3 py-2">Usuario</th>
                     <th className="px-3 py-2">Cliente</th>
                     <th className="px-3 py-2">Motivo</th>
                     <th className="px-3 py-2">Chofer</th>
@@ -230,6 +232,11 @@ export default function ActualizacionPage() {
                     <tr key={r.id} className="hover:bg-muted/30 transition-colors">
                       <td className="px-3 py-2 whitespace-nowrap">
                         {r.created_at ? new Date(r.created_at).toLocaleDateString("es-AR") : "—"}
+                      </td>
+                      <td className="px-3 py-2">
+                        <div className="text-[10px] font-medium text-blue-600 dark:text-blue-400 truncate max-w-[100px]" title={r.created_by_email ?? ""}>
+                          {r.created_by_email?.split('@')[0] ?? "—"}
+                        </div>
                       </td>
                       <td className="px-3 py-2">
                         <div className="font-medium text-card-foreground">

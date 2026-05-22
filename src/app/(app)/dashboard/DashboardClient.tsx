@@ -11,7 +11,7 @@ import {
 import { upsertClientes } from "../import/actions";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { createWorker } from "tesseract.js";
+import { Copy, Check } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 
 const DEFAULT_MOTIVOS = [
@@ -61,22 +61,6 @@ function formatWhatsappText(params: {
   return lines.join("\n");
 }
 
-function pickClientNumberFromText(text: string) {
-  const prefer =
-    text.match(/c[oó]digo\s+de\s+pdv\s*[:\-]?\s*(\d{4,12})/i)?.[1] ??
-    text.match(/c[oó]digo\s+pdv\s*[:\-]?\s*(\d{4,12})/i)?.[1] ??
-    text.match(/rechaz\w*\s*\/\s*(\d{4,12})/i)?.[1] ??
-    null;
-  if (prefer) return prefer;
-
-  const matches = text.match(/\b\d{4,12}\b/g);
-  if (!matches?.length) return null;
-  const unique = Array.from(new Set(matches));
-
-  const preferredLength = unique.find((n) => n.length >= 4 && n.length <= 6);
-  return preferredLength ?? unique[0] ?? null;
-}
-
 function normalizeForMatch(value: string) {
   return value
     .toLowerCase()
@@ -84,31 +68,6 @@ function normalizeForMatch(value: string) {
     .replaceAll(/[\u0300-\u036f]/g, "")
     .replaceAll(/\s+/g, " ")
     .trim();
-}
-
-function normalizeCompact(value: string) {
-  return normalizeForMatch(value).replaceAll(" ", "");
-}
-
-function extractLineValue(text: string, labels: string[]) {
-  const lines = text
-    .split(/\r?\n/)
-    .map((l) => l.trim())
-    .filter(Boolean);
-  const normLabels = labels.map((l) => normalizeForMatch(l));
-  for (const line of lines) {
-    for (let i = 0; i < normLabels.length; i++) {
-      const lbl = labels[i] ?? "";
-      if (!lbl) continue;
-      const re = new RegExp(`${lbl}\\s*[:\\-]\\s*(.+)$`, "i");
-      const m = line.match(re);
-      if (m?.[1]) return m[1].trim();
-      const re2 = new RegExp(`${lbl}\\s+(.+)$`, "i");
-      const m2 = line.match(re2);
-      if (m2?.[1]) return m2[1].trim();
-    }
-  }
-  return null;
 }
 
 function bestMatchFromList(text: string, values: string[]) {
@@ -119,183 +78,6 @@ function bestMatchFromList(text: string, values: string[]) {
     if (hay.includes(n)) return v;
   }
   return null;
-}
-
-function extractCaptureFields(params: { text: string; motivos: string[]; choferes: string[] }) {
-  const text = params.text ?? "";
-  const lines = text
-    .split(/\r?\n/)
-    .map((l) => l.trim())
-    .filter(Boolean);
-
-  // 1. CÓDIGO DE CLIENTE
-  const numeroCliente =
-    text.match(/cliente\s*[:\-]?\s*\*?(\d+)\*?/i)?.[1] ??
-    text.match(/c[oó]digo\s+de\s+pdv\s*[:\-]?\s*(\d{4,12})/i)?.[1] ??
-    text.match(/c[oó]digo\s+pdv\s*[:\-]?\s*(\d{4,12})/i)?.[1] ??
-    pickClientNumberFromText(text);
-
-  // 2. CLIENTE (NOMBRE)
-  const pdvMatch = text.match(/propietario\s+del\s+pdv\s*[:\-]?\s*([^\n\r]+)/i);
-  const titleMatch = text.match(/rechazo\s*\/\s*\d+\s*\/\s*([^\n\r]+)/i);
-  const clienteRaw =
-    text.match(/nombre\s*:\s*\*?([^\*\n\r]+)\*?/i)?.[1]?.trim() ??
-    titleMatch?.[1]?.trim() ??
-    pdvMatch?.[1]?.trim() ??
-    (lines[0] && !lines[0].toLowerCase().includes("entrega") ? lines[0] : null);
-
-  // 3. MOTIVO
-  // Primero buscamos en el formato resumen "Motivo: *MOTIVO*"
-  let motivo: string | null = text.match(/motivo\s*:\s*\*([^\*]+)\*/i)?.[1]?.trim() || null;
-  
-  if (!motivo) {
-    // Buscamos la etiqueta "Entrega:" que suele estar arriba del motivo en la captura gris
-    const entregaIdx = lines.findIndex(l => normalizeForMatch(l).startsWith("entrega"));
-    if (entregaIdx >= 0) {
-      // El motivo suele estar en la misma línea después de "Entrega:" o en la siguiente línea
-      const currentLine = lines[entregaIdx] || "";
-      const nextLine = lines[entregaIdx + 1] || "";
-      
-      const matchInCurrent = currentLine.match(/entrega\s*[:\-]?\s*([A-Z\s]+)/i);
-      const potentialMotivo = matchInCurrent?.[1]?.trim() || nextLine.trim();
-      
-      const found = bestMatchFromList(potentialMotivo, params.motivos);
-      if (found) motivo = found;
-      else if (potentialMotivo.length > 3 && potentialMotivo.length < 30) {
-        motivo = potentialMotivo;
-      }
-    }
-    
-    // Fallback: buscar cualquier motivo conocido en todo el texto
-    if (!motivo) {
-      motivo = bestMatchFromList(text, params.motivos);
-    }
-  }
-
-  // 4. COMENTARIO
-  let comentario: string | null = text.match(/comentario\s*:\s*([^\n\r]+)/i)?.[1]?.trim() || null;
-  
-  if (!comentario) {
-    // El comentario suele ser el texto largo que sigue al motivo en el bloque gris
-    // O empieza con palabras como "rechaza", "cliente", etc.
-    const startKeywords = ["rechaza", "cliente", "no recib", "falta", "mal fact", "devuel"];
-    const stopTags = ["propietario", "tel[eé]fono", "documentos", "volumen", "monto", "rn", "conductor", "c[oó]digo", "pdv", "asignado", "vendedor"];
-    
-    // Buscamos una línea que contenga keywords de inicio y no sea un label conocido
-    let startIdx = -1;
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i]?.toLowerCase() || "";
-      if (startKeywords.some(k => line.includes(k)) && !stopTags.some(t => line.includes(t))) {
-        startIdx = i;
-        break;
-      }
-    }
-    
-    if (startIdx >= 0) {
-      let capturedLines = [];
-      for (let i = startIdx; i < Math.min(startIdx + 5, lines.length); i++) {
-        const line = lines[i] || "";
-        if (i > startIdx && stopTags.some(tag => line.toLowerCase().includes(tag))) break;
-        capturedLines.push(line);
-      }
-      comentario = capturedLines.join(" ").trim();
-      // Limpiar prefijos de etiquetas si se colaron
-      comentario = comentario.replace(/^entrega\s*[:\-]\s*/i, "").trim();
-    }
-  }
-
-  // 5. CHOFER (CONDUCTOR)
-  let chofer: string | null = null;
-  
-  // 5.1 Buscar en las líneas que contengan "Conductor"
-  const conductorIdx = lines.findIndex(l => {
-    const n = normalizeForMatch(l);
-    return n.includes("conductor") || n.includes("cond.") || n.startsWith("cond");
-  });
-  
-  if (conductorIdx >= 0) {
-    // Probar primero la línea actual: si tiene múltiples espacios, el nombre puede estar en la "columna 6" (parte 6)
-    const currentLine = lines[conductorIdx] || "";
-    const parts = currentLine.split(/\s{2,}/); // Dividir por 2 o más espacios (típico de columnas en OCR)
-    
-    if (parts.length >= 6) {
-      const col6 = parts[5]?.trim();
-      if (col6 && col6.length > 3 && !normalizeForMatch(col6).includes("asignado") && !normalizeForMatch(col6).includes("entrega")) {
-        chofer = col6;
-      }
-    }
-    
-    // Si no está en la columna 6 de la misma línea, probar la línea siguiente (o las 2 siguientes)
-    if (!chofer) {
-      const searchLines = lines.slice(conductorIdx + 1, conductorIdx + 4);
-      for (const line of searchLines) {
-        if (normalizeForMatch(line).includes("asignado") || normalizeForMatch(line).includes("supervisor") || normalizeForMatch(line).includes("entrega")) continue;
-        
-        // El nombre suele estar precedido por legajo (números)
-        const nameMatch = line.match(/^(?:\d+\s+)?([A-Z\xc1\xc9\xcd\xd3\xda\xd1\s]{4,})/i);
-        if (nameMatch?.[1]) {
-          const cleaned = nameMatch[1].trim();
-          if (cleaned.length > 3) {
-            chofer = cleaned;
-            break;
-          }
-        }
-      }
-    }
-  }
-
-  // Fallback Chofer: buscar "Conductor" y el nombre en cualquier parte con regex flexible si lo anterior falló
-  if (!chofer) {
-    const conductorMatch = text.match(/(?:conductor|cond\.?)\s*[:\-]?\s*(?:\d+\s+)?([A-Z\xc1\xc9\xcd\xd3\xda\xd1\s]{4,})/i);
-    if (conductorMatch?.[1]) {
-      const name = conductorMatch[1].trim();
-      if (name.length > 3 && !normalizeForMatch(name).includes("asignado") && !normalizeForMatch(name).includes("entrega")) {
-        chofer = name;
-      }
-    }
-  }
-
-  // Fallback Final: excluir palabras prohibidas si se colaron
-  if (chofer && (normalizeForMatch(chofer).includes("asignado") || normalizeForMatch(chofer).includes("supervisor") || normalizeForMatch(chofer).includes("entrega"))) {
-    chofer = null;
-  }
-
-  // Si después de todo no se encontró, buscar nombres conocidos (literal)
-  if (!chofer) {
-    const foundInList = bestMatchFromList(text, params.choferes);
-    if (foundInList) chofer = foundInList;
-  }
-
-  // 6. BULTOS
-  let bultos: number | null = null;
-  const bultosMatch = text.match(/(\d+)\s*bultos/i);
-  if (bultosMatch?.[1]) {
-    bultos = Number(bultosMatch[1]);
-  } else {
-    // Buscar cerca de "Volumen"
-    const volumenIdx = lines.findIndex(l => normalizeForMatch(l).includes("volumen"));
-    if (volumenIdx >= 0) {
-      const area = lines.slice(volumenIdx, volumenIdx + 3).join(" ");
-      const m = area.match(/(\d+)/);
-      if (m?.[1]) bultos = Number(m[1]);
-    }
-  }
-
-  // 7. SV (SUPERVISOR)
-  const sv =
-    text.match(/sv\s*:\s*([^\n\r]+)/i)?.[1]?.trim() ??
-    text.match(/asignad\w*\s+a\s+([^\n\r]+)/i)?.[1]?.trim() ??
-    null;
-
-  return {
-    numeroCliente,
-    cliente: clienteRaw,
-    sv,
-    motivo: motivo ? motivo.toUpperCase() : null,
-    chofer: chofer ? chofer.trim() : null,
-    bultos,
-    comentario: comentario ? comentario.trim() : null,
-  };
 }
 
 function Stars({ value }: { value: number }) {
@@ -354,6 +136,7 @@ export function DashboardClient() {
     vendedor: "",
   });
   const [choferSearch, setChoferSearch] = useState("");
+  const [copied, setCopied] = useState(false);
   const [autoSendStatus, setAutoSendStatus] = useState<
     | { type: "idle" }
     | { type: "sending" }
@@ -1167,7 +950,18 @@ export function DashboardClient() {
                 <p className="text-xs text-amber-700 dark:text-amber-500 mb-3">
                   {lastSentInfo.autoSendStatus.message || "El supervisor no está registrado en el sistema de envío automático."}
                 </p>
-                <div className="rounded-md bg-background/50 p-2 text-[10px] font-mono text-muted-foreground mb-3 max-h-32 overflow-y-auto border border-amber-200/50">
+                <div className="relative group rounded-md bg-background/50 p-2 text-[10px] font-mono text-muted-foreground mb-3 max-h-32 overflow-y-auto border border-amber-200/50">
+                  <button
+                    onClick={async () => {
+                      await navigator.clipboard.writeText(lastSentInfo.whatsappText);
+                      setCopied(true);
+                      setTimeout(() => setCopied(false), 2000);
+                    }}
+                    className="absolute right-2 top-2 p-1.5 rounded-md bg-background border border-border shadow-sm hover:bg-muted transition-all active:scale-90 z-10"
+                    title="Copiar resumen"
+                  >
+                    {copied ? <Check className="h-3.5 w-3.5 text-green-600" /> : <Copy className="h-3.5 w-3.5" />}
+                  </button>
                   <pre className="whitespace-pre-wrap">{lastSentInfo.whatsappText}</pre>
                 </div>
                 <button

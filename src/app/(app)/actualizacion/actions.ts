@@ -18,7 +18,7 @@ export async function listModulacionesByPeriod(params: { month: number; year: nu
 
   const { data, error } = await supabase
     .from("modulaciones")
-    .select("id,created_at,cliente_numero,cliente_nombre,motivo,chofer,bultos,comentario,actualizacion")
+    .select("id,created_at,cliente_numero,cliente_nombre,motivo,chofer,bultos,comentario,actualizacion,created_by_email")
     .eq("created_by", userData.user.id)
     .gte("created_at", startDate)
     .lte("created_at", endDate)
