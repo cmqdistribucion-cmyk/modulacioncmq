@@ -21,7 +21,7 @@ type Row = {
   created_by_email: string | null;
 };
 
-const OPTIONS: Array<Row["actualizacion"]> = ["pendiente", "entregado", "rechazado"];
+const OPTIONS: Array<NonNullable<Row["actualizacion"]>> = ["pendiente", "entregado", "rechazado"];
 const MONTHS = [
   "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
   "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
