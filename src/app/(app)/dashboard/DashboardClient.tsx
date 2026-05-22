@@ -524,7 +524,12 @@ export function DashboardClient() {
             message,
           });
 
-          let newStatus: { type: "sent" | "warn" | "error"; message?: string } = { type: "sent" };
+          let newStatus: { 
+            type: "idle" | "sending" | "sent" | "warn" | "error"; 
+            message: string 
+          } | { 
+            type: "sent" 
+          };
           
           if (res.status === "sent") {
             newStatus = { type: "sent" };
