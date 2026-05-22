@@ -13,6 +13,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Copy, Check } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
+import type { Session } from "@supabase/supabase-js";
 
 const DEFAULT_MOTIVOS = [
   "MAL FACTURADO",
@@ -162,7 +163,7 @@ export function DashboardClient() {
   } | null>(null);
 
   const router = useRouter();
-  const [session, setSession] = useState<any>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
 
   useEffect(() => {

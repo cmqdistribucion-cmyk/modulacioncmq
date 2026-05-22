@@ -244,7 +244,7 @@ Responde ÚNICAMENTE el objeto JSON, sin texto adicional.`;
     // Limpiar posibles bloques de código markdown
     const jsonStr = content.replace(/```json|```/g, "").trim();
     return JSON.parse(jsonStr);
-  } catch (e) {
+  } catch {
     console.error("Error parseando JSON de OpenRouter:", content);
     throw new Error("No se pudo parsear la respuesta de la IA");
   }

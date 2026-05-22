@@ -29,7 +29,7 @@ export async function updateSession(request: NextRequest) {
     },
   });
 
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
 
   // If we're on a protected route and the session is invalid, clear cookies and redirect to login
   const isPublic =

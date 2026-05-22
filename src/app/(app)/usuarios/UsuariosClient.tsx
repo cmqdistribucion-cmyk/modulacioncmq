@@ -6,7 +6,6 @@ import {
   adminListUsers,
   adminGetAppName,
   adminSetAppName,
-  adminSetUserAvatar,
   adminSetPassword,
   adminSetRole,
   adminSetUserBanned,

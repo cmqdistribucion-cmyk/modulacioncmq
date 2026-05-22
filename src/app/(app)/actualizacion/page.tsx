@@ -1,9 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import { getSupabaseEnv } from "@/lib/supabase/env";
 import {
-  listModulacionesByClienteNumero,
   listModulacionesByPeriod,
   updateModulacionActualizacion,
 } from "./actions";
@@ -54,15 +53,9 @@ export default function ActualizacionPage() {
     return res;
   }, []);
 
-  // Cargar modulaciones cuando cambie el periodo
-  useEffect(() => {
-    if (env.missing.length) return;
-    void loadData();
-  }, [env.missing.length, selectedMonth, selectedYear]);
-
-  async function loadData() {
-    setStatus({ type: "loading" });
+  const loadData = useCallback(async () => {
     try {
+      setStatus({ type: "loading" });
       const data = (await listModulacionesByPeriod({
         month: selectedMonth,
         year: selectedYear
@@ -76,7 +69,14 @@ export default function ActualizacionPage() {
         message: e instanceof Error ? e.message : "Error al cargar modulaciones",
       });
     }
-  }
+  }, [selectedMonth, selectedYear]);
+
+  // Cargar modulaciones cuando cambie el periodo
+  useEffect(() => {
+    if (env.missing.length) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void loadData();
+  }, [env.missing.length, loadData]);
 
   const filteredRows = useMemo(() => {
     return allRows.filter((r) => {

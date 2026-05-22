@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { ExportModulaciones } from "@/components/export-modulaciones";
 import * as XLSX from "xlsx";
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import {
   adminClearClientes,
   adminClearPuntuaciones,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition, useMemo } from "react";
+import { useEffect, useState, useTransition, useMemo, useCallback } from "react";
 import { getAnalisisData } from "./actions";
 import {
   BarChart,
@@ -13,7 +13,6 @@ import {
   ResponsiveContainer,
   LineChart,
   Line,
-  Cell,
 } from "recharts";
 import { Calendar, ChartBar, TrendingDown, RefreshCcw } from "lucide-react";
 
@@ -31,9 +30,9 @@ export function AnalisisClient() {
   });
   const [dateTo, setDateTo] = useState(() => new Date().toISOString().split("T")[0]);
 
-  const refresh = () => {
-    setError(null);
+  const refresh = useCallback(() => {
     startTransition(async () => {
+      setError(null);
       try {
         const res = await getAnalisisData({
           from: dateFrom ? `${dateFrom}T00:00:00Z` : undefined,
@@ -44,11 +43,11 @@ export function AnalisisClient() {
         setError(e instanceof Error ? e.message : "Error al cargar datos");
       }
     });
-  };
+  }, [dateFrom, dateTo]);
 
   useEffect(() => {
     refresh();
-  }, [dateFrom, dateTo]);
+  }, [refresh]);
 
   const stats = useMemo(() => {
     const monthly: Record<string, { total: number; rechazados: number }> = {};
