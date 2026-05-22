@@ -1,0 +1,52 @@
+@import "tailwindcss";
+
+:root {
+  --background: #eaf2ff;
+  --foreground: #171717;
+  --card: #ffffff;
+  --card-foreground: #171717;
+  --muted: #f4f4f5;
+  --muted-foreground: #52525b;
+  --border: rgba(0, 0, 0, 0.12);
+  --ring: rgba(0, 0, 0, 0.22);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-ring: var(--ring);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+.dark {
+  --background: #0a0a0a;
+  --foreground: #ededed;
+  --card: #0f0f10;
+  --card-foreground: #ededed;
+  --muted: #18181b;
+  --muted-foreground: #a1a1aa;
+  --border: rgba(255, 255, 255, 0.12);
+  --ring: rgba(255, 255, 255, 0.22);
+}
+
+body {
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
+
+@layer base {
+  button,
+  a {
+    @apply transition-all duration-200 ease-in-out active:scale-95;
+  }
+  
+  button:hover:not(:disabled),
+  a:hover {
+    @apply filter brightness-110 scale-[1.02];
+  }
+}
