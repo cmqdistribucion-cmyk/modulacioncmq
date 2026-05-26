@@ -20,7 +20,6 @@ export async function listModulacionesByPeriod(params: { month: number; year: nu
   const { data, error } = await supabase
     .from("modulaciones")
     .select(fullSelect)
-    .eq("created_by", userData.user.id)
     .gte("created_at", startDate)
     .lte("created_at", endDate)
     .order("created_at", { ascending: false });
@@ -37,7 +36,6 @@ export async function listModulacionesByPeriod(params: { month: number; year: nu
       const { data: safeData, error: safeError } = await supabase
         .from("modulaciones")
         .select(safeSelect)
-        .eq("created_by", userData.user.id)
         .gte("created_at", startDate)
         .lte("created_at", endDate)
         .order("created_at", { ascending: false });
