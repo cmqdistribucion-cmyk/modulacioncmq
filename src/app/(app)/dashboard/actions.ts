@@ -32,13 +32,13 @@ export async function createModulacion(params: {
     motivo: params.motivo,
     chofer: params.chofer,
     bultos: params.bultos,
-    hl: params.hl,
     comentario: params.comentario,
     created_by: userData.user.id,
   };
 
   const fullRow = {
     ...baseRow,
+    hl: params.hl,
     actualizacion: "pendiente",
     created_by_email: userData.user.email ?? null,
   };
@@ -50,6 +50,7 @@ export async function createModulacion(params: {
   const missingColumn =
     msg.includes("actualizacion") ||
     msg.includes("created_by_email") ||
+    msg.includes("hl") ||
     msg.includes("could not find the") ||
     msg.includes("does not exist");
   if (!missingColumn) throw new Error(fullErr.message);
