@@ -135,8 +135,9 @@ export default function ActualizacionPage() {
         actualizacion: value,
       });
       // Actualizar localmente para evitar recargar todo
+      const now = new Date().toISOString();
       setAllRows((prev) =>
-        prev.map((r) => (r.id === row.id ? { ...r, actualizacion: value } : r))
+        prev.map((r) => (r.id === row.id ? { ...r, actualizacion: value, updated_at: now } : r))
       );
       setStatus({ type: "done", count: allRows.length });
     } catch (e) {

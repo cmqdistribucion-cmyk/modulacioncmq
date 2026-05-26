@@ -136,10 +136,12 @@ export async function updateModulacionActualizacion(params: {
 
   const { data, error } = await supabase
     .from("modulaciones")
-    .update({ actualizacion: params.actualizacion })
+    .update({ 
+      actualizacion: params.actualizacion,
+      updated_at: new Date().toISOString() 
+    })
     .eq("id", params.modulacionId)
     .eq("cliente_numero", numero)
-    .eq("created_by", userData.user.id)
     .select("id")
     .limit(1);
 
