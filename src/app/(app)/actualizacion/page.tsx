@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import { getSupabaseEnv } from "@/lib/supabase/env";
-import { Clock, Star, Droplets, UserCheck, Timer, Calendar } from "lucide-react";
+import { Clock, Star, Droplets, UserCheck, Timer, Calendar, X, Check } from "lucide-react";
 import {
   listModulacionesByDate,
   updateModulacionActualizacion,
@@ -186,8 +186,8 @@ export default function ActualizacionPage() {
               {m.label}
             </div>
             {activeMosaic === m.label && (
-              <div className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-foreground text-[8px] text-background">
-                Ô£ò
+              <div className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-foreground text-background">
+                <Check size={8} strokeWidth={4} />
               </div>
             )}
           </button>
@@ -278,7 +278,9 @@ export default function ActualizacionPage() {
                     mosaics.find(m => m.label === activeMosaic)?.bg
                   } ${mosaics.find(m => m.label === activeMosaic)?.color}`}>
                     Filtrado por: {activeMosaic}
-                    <button onClick={() => setActiveMosaic(null)} className="ml-1.5 hover:opacity-70">Ô£ò</button>
+                    <button onClick={() => setActiveMosaic(null)} className="ml-1.5 hover:opacity-70">
+                      <X size={10} strokeWidth={3} />
+                    </button>
                   </span>
                 )}
               </div>
