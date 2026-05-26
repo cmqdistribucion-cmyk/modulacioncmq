@@ -18,14 +18,38 @@ export async function listModulacionesByPeriod(params: { month: number; year: nu
 
   const { data, error } = await supabase
     .from("modulaciones")
-    .select("id,created_at,cliente_numero,cliente_nombre,motivo,chofer,bultos,comentario,actualizacion,created_by_email")
+    .select("id,created_at,updated_at,cliente_numero,cliente_nombre,motivo,chofer,bultos,hl,actualizacion,created_by_email")
     .eq("created_by", userData.user.id)
     .gte("created_at", startDate)
     .lte("created_at", endDate)
     .order("created_at", { ascending: false });
 
   if (error) throw new Error(error.message);
-  return (data ?? []) as Array<Record<string, unknown>>;
+
+  // Obtener puntuaciones (RMD) para estos clientes
+  const numeros = Array.from(new Set((data ?? []).map(r => r.cliente_numero)));
+  let scores: Record<string, number> = {};
+  
+  if (numeros.length > 0) {
+    const { data: scoreData } = await supabase
+      .from("puntuaciones")
+      .select("cliente_numero,puntuacion")
+      .in("cliente_numero", numeros)
+      .order("fecha", { ascending: false });
+    
+    if (scoreData) {
+      scoreData.forEach(s => {
+        if (!scores[s.cliente_numero]) {
+          scores[s.cliente_numero] = s.puntuacion;
+        }
+      });
+    }
+  }
+
+  return (data ?? []).map(r => ({
+    ...r,
+    puntuacion: scores[r.cliente_numero] ?? null
+  })) as Array<Record<string, unknown>>;
 }
 
 export async function listModulacionesByClienteNumero(params: { clienteNumero: string }) {
