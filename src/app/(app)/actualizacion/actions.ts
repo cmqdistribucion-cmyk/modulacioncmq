@@ -41,7 +41,13 @@ export async function listModulacionesByDate(params: { date: string }) {
         .order("created_at", { ascending: false });
       
       if (safeError) throw new Error(safeError.message);
-      resultData = safeData;
+      resultData = (safeData ?? []).map(r => ({
+        ...r,
+        updated_at: null,
+        hl: null,
+        actualizacion: null,
+        created_by_email: null
+      })) as any;
     } else {
       throw new Error(error.message);
     }
@@ -89,7 +95,6 @@ export async function listModulacionesByClienteNumero(params: { clienteNumero: s
     .from("modulaciones")
     .select("id,created_at,cliente_numero,cliente_nombre,motivo,chofer,bultos,comentario,actualizacion")
     .eq("cliente_numero", numero)
-    .eq("created_by", userData.user.id)
     .order("created_at", { ascending: false })
     .limit(50);
 
@@ -106,7 +111,6 @@ export async function listModulacionesByClienteNumero(params: { clienteNumero: s
     .from("modulaciones")
     .select("id,created_at,cliente_numero,cliente_nombre,motivo,chofer,bultos,comentario")
     .eq("cliente_numero", numero)
-    .eq("created_by", userData.user.id)
     .order("created_at", { ascending: false })
     .limit(50);
   if (legacyErr) throw new Error(legacyErr.message);

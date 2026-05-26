@@ -11,7 +11,7 @@ import {
 import { upsertClientes } from "../import/actions";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Copy, Check } from "lucide-react";
+import { Copy, Check, Bot, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import type { Session } from "@supabase/supabase-js";
 
@@ -157,6 +157,9 @@ export function DashboardClient() {
     | { type: "error"; message: string }
   >({ type: "idle" });
 
+  const [pendingStats, setPendingStats] = useState<{ count: number; maxMinutes: number }>({ count: 0, maxMinutes: 0 });
+  const [showAiAviso, setShowAiAviso] = useState(true);
+
   const [lastSentInfo, setLastSentInfo] = useState<{
     cliente: string;
     sv: string | null;
@@ -167,6 +170,45 @@ export function DashboardClient() {
   const router = useRouter();
   const [session, setSession] = useState<Session | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
+
+  useEffect(() => {
+    if (!supabase || !authChecked || !session) return;
+
+    const fetchPending = async () => {
+      try {
+        const today = new Date().toISOString().split("T")[0];
+        const startDate = `${today}T00:00:00.000Z`;
+        const endDate = `${today}T23:59:59.999Z`;
+
+        const { data, error } = await supabase
+          .from("modulaciones")
+          .select("created_at, actualizacion")
+          .gte("created_at", startDate)
+          .lte("created_at", endDate)
+          .or("actualizacion.eq.pendiente,actualizacion.is.null");
+
+        if (!error && data) {
+          const now = Date.now();
+          const pendingItems = data.filter(r => (r.actualizacion || "pendiente") === "pendiente");
+          const count = pendingItems.length;
+          let maxMinutes = 0;
+          
+          if (count > 0) {
+            const oldest = Math.min(...pendingItems.map(r => new Date(r.created_at).getTime()));
+            maxMinutes = Math.floor((now - oldest) / 60000);
+          }
+          
+          setPendingStats({ count, maxMinutes });
+        }
+      } catch (err) {
+        console.error("Error fetching pending stats:", err);
+      }
+    };
+
+    void fetchPending();
+    const interval = setInterval(fetchPending, 30000); // Actualizar cada 30 seg
+    return () => clearInterval(interval);
+  }, [supabase, authChecked, session]);
 
   useEffect(() => {
     if (!supabase) return;
@@ -320,21 +362,26 @@ export function DashboardClient() {
     const controller = new AbortController();
 
     void (async () => {
-      setClientesCountError(null);
+      try {
+        setClientesCountError(null);
 
-      const { error, count } = await supabase
-        .from("clientes")
-        .select("id", { count: "exact", head: true })
-        .abortSignal(controller.signal);
+        const { error, count } = await supabase
+          .from("clientes")
+          .select("id", { count: "exact", head: true })
+          .abortSignal(controller.signal);
 
-      if (cancelled) return;
-      if (error) {
-        if (error.message.includes("abort")) return;
-        setClientesCount(null);
-        setClientesCountError(error.message);
-        return;
+        if (cancelled) return;
+        if (error) {
+          if (error.message.includes("abort")) return;
+          setClientesCount(null);
+          setClientesCountError(error.message);
+          return;
+        }
+        setClientesCount(typeof count === "number" ? count : null);
+      } catch (err) {
+        if (cancelled || (err instanceof Error && err.name === "AbortError")) return;
+        console.error("Error fetching clientes count:", err);
       }
-      setClientesCount(typeof count === "number" ? count : null);
     })();
 
     return () => {
@@ -349,68 +396,87 @@ export function DashboardClient() {
     if (searchTimer.current) window.clearTimeout(searchTimer.current);
 
     const q = query.trim().replaceAll(",", " ");
-    if (!q) return;
+    if (!q) {
+      setResults([]);
+      setLoadingResults(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    let cancelled = false;
 
     searchTimer.current = window.setTimeout(async () => {
-      setLoadingResults(true);
-      setSearchError(null);
-      setSubmitOk(false);
-      setSubmitError(null);
-      setWhatsappText("");
+      try {
+        setLoadingResults(true);
+        setSearchError(null);
+        setSubmitOk(false);
+        setSubmitError(null);
+        setWhatsappText("");
 
-      const { data, error } = await supabase
-        .from("clientes")
-        .select(
-          "id,title,numero_cliente,nombre,domicilio,vendedor,sv,telefono,zona",
-        )
-        .or(`numero_cliente.ilike.%${q}%,nombre.ilike.%${q}%`)
-        .order("nombre", { ascending: true })
-        .limit(12);
+        const { data, error } = await supabase
+          .from("clientes")
+          .select(
+            "id,title,numero_cliente,nombre,domicilio,vendedor,sv,telefono,zona",
+          )
+          .or(`numero_cliente.ilike.%${q}%,nombre.ilike.%${q}%`)
+          .order("nombre", { ascending: true })
+          .limit(12)
+          .abortSignal(controller.signal);
 
-      if (error) {
-        setSearchError(error.message);
-        setResults([]);
+        if (cancelled) return;
+
+        if (error) {
+          if (error.message.includes("abort")) return;
+          setSearchError(error.message);
+          setResults([]);
+          setLoadingResults(false);
+          return;
+        }
+
+        const nextResults = (data ?? []) as Cliente[];
+        setResults(nextResults);
+        if (!nextResults.length) setScoresByNumero({});
+
+        const normalizedQuery = q.replaceAll(/\s+/g, "");
+        const exact =
+          nextResults.find(
+            (c) =>
+              c.numero_cliente.replaceAll(/\s+/g, "") === normalizedQuery ||
+              c.numero_cliente === q,
+          ) ?? null;
+
+        if (exact) {
+          setSelected(exact);
+          setSubmitOk(false);
+          setSubmitError(null);
+          setWhatsappText("");
+        } else if (nextResults.length === 1) {
+          setSelected(nextResults[0]);
+          setSubmitOk(false);
+          setSubmitError(null);
+          setWhatsappText("");
+        } else if (nextResults.length === 0 && /^\d+$/.test(q)) {
+          // No hay resultados y la búsqueda parece ser un número de cliente
+          setNewCliente({
+            numero_cliente: q,
+            nombre: "",
+            sv: "",
+            vendedor: "",
+          });
+          setShowCreateClienteModal(true);
+        }
+
         setLoadingResults(false);
-        return;
+      } catch (err) {
+        if (cancelled || (err instanceof Error && err.name === "AbortError")) return;
+        console.error("Search error:", err);
+        setLoadingResults(false);
       }
-
-      const nextResults = (data ?? []) as Cliente[];
-      setResults(nextResults);
-      if (!nextResults.length) setScoresByNumero({});
-
-      const normalizedQuery = q.replaceAll(/\s+/g, "");
-      const exact =
-        nextResults.find(
-          (c) =>
-            c.numero_cliente.replaceAll(/\s+/g, "") === normalizedQuery ||
-            c.numero_cliente === q,
-        ) ?? null;
-
-      if (exact) {
-        setSelected(exact);
-        setSubmitOk(false);
-        setSubmitError(null);
-        setWhatsappText("");
-      } else if (nextResults.length === 1) {
-        setSelected(nextResults[0]);
-        setSubmitOk(false);
-        setSubmitError(null);
-        setWhatsappText("");
-      } else if (nextResults.length === 0 && /^\d+$/.test(q)) {
-        // No hay resultados y la búsqueda parece ser un número de cliente
-        setNewCliente({
-          numero_cliente: q,
-          nombre: "",
-          sv: "",
-          vendedor: "",
-        });
-        setShowCreateClienteModal(true);
-      }
-
-      setLoadingResults(false);
     }, 250);
 
     return () => {
+      cancelled = true;
+      controller.abort();
       if (searchTimer.current) window.clearTimeout(searchTimer.current);
     };
   }, [env.missing.length, query, supabase, authChecked, session]);
@@ -764,7 +830,29 @@ export function DashboardClient() {
   if (!session) return null;
 
   return (
-    <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+    <div className="flex flex-col gap-6">
+      {/* Aviso de la IA (Robot) */}
+      {showAiAviso && pendingStats.count > 0 && (
+        <div className="relative flex items-center gap-3 rounded-lg border border-blue-200 bg-blue-50/50 p-3 pr-10 shadow-sm dark:border-blue-800 dark:bg-blue-900/20 animate-in slide-in-from-top duration-300">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-800">
+            <Bot className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
+              ¡Hola! Tenés <span className="font-bold">{pendingStats.count}</span> {pendingStats.count === 1 ? 'pendiente' : 'pendientes'} y el más antiguo lleva <span className="font-bold">{pendingStats.maxMinutes}</span> {pendingStats.maxMinutes === 1 ? 'minuto' : 'minutos'}.
+            </p>
+          </div>
+          <button
+            onClick={() => setShowAiAviso(false)}
+            className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-blue-400 hover:bg-blue-100 hover:text-blue-600 dark:hover:bg-blue-800"
+            title="Cerrar aviso"
+          >
+            <X size={16} />
+          </button>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
       <section className="rounded-xl border border-border bg-card p-5 shadow-sm">
         <div className="flex items-start justify-between gap-3">
           <div>
@@ -1126,6 +1214,25 @@ export function DashboardClient() {
                       }));
                     }}
                     type="number"
+                    min={0}
+                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                  />
+                </div>
+                <div>
+                  <div className="mb-1 text-sm font-medium text-card-foreground">
+                    HL (Hectólitros)
+                  </div>
+                  <input
+                    value={String(input.hl)}
+                    onChange={(e) => {
+                      const next = Number(e.target.value);
+                      setInput((prev) => ({
+                        ...prev,
+                        hl: Number.isFinite(next) ? next : prev.hl,
+                      }));
+                    }}
+                    type="number"
+                    step="0.01"
                     min={0}
                     className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
                   />
@@ -1514,5 +1621,6 @@ export function DashboardClient() {
       )}
 
     </div>
-  );
+  </div>
+);
 }

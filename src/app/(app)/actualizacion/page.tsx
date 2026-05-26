@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import { getSupabaseEnv } from "@/lib/supabase/env";
-import { Clock, Star, Droplets, UserCheck, Timer, Calendar, X, Check } from "lucide-react";
+import { Clock, Star, Droplets, UserCheck, Timer, Calendar, X, Check, Bot } from "lucide-react";
 import {
   listModulacionesByDate,
   updateModulacionActualizacion,
@@ -43,10 +43,19 @@ export default function ActualizacionPage() {
   const [clienteNumero, setClienteNumero] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("todos");
   const [activeMosaic, setActiveMosaic] = useState<string | null>(null);
+  const [showAiAviso, setShowAiAviso] = useState(true);
   
   const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split("T")[0]);
   
   const [allRows, setAllRows] = useState<Row[]>([]);
+  const [now, setNow] = useState(Date.now());
+
+  // Actualizar el tiempo actual cada minuto para los cálculos de "+20 min"
+  useEffect(() => {
+    const interval = setInterval(() => setNow(Date.now()), 60000);
+    return () => clearInterval(interval);
+  }, []);
+
   const [status, setStatus] = useState<
     | { type: "idle" }
     | { type: "loading" }
@@ -75,9 +84,33 @@ export default function ActualizacionPage() {
   // Cargar modulaciones cuando cambie el periodo
   useEffect(() => {
     if (env.missing.length) return;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    void loadData();
-  }, [env.missing.length, loadData]);
+    
+    let active = true;
+    const load = async () => {
+      try {
+        setStatus({ type: "loading" });
+        const data = await listModulacionesByDate({
+          date: selectedDate
+        });
+        if (!active) return;
+        setAllRows(data as unknown as Row[]);
+        setStatus({ type: "done", count: data.length });
+      } catch (e) {
+        if (!active) return;
+        // Ignorar errores de cancelación/abort
+        if (e instanceof Error && (e.message.includes("abort") || e.message.includes("cancelled"))) return;
+        
+        setAllRows([]);
+        setStatus({
+          type: "error",
+          message: e instanceof Error ? e.message : "Error al cargar modulaciones",
+        });
+      }
+    };
+
+    void load();
+    return () => { active = false; };
+  }, [env.missing.length, selectedDate]);
 
   const filteredRows = useMemo(() => {
     return allRows.filter((r) => {
@@ -88,10 +121,14 @@ export default function ActualizacionPage() {
       if (activeMosaic === "Pendientes") {
         matchMosaic = (r.actualizacion || "pendiente") === "pendiente";
       } else if (activeMosaic === "+20 Minutos") {
-        if (!r.updated_at || (r.actualizacion || "pendiente") === "pendiente") matchMosaic = false;
-        else {
+        if (r.actualizacion === "entregado") {
+          matchMosaic = false;
+        } else {
           const start = new Date(r.created_at).getTime();
-          const end = new Date(r.updated_at).getTime();
+          const isFinished = (r.actualizacion || "pendiente") !== "pendiente";
+          const end = isFinished 
+            ? (r.updated_at ? new Date(r.updated_at).getTime() : start)
+            : now;
           matchMosaic = (end - start) > 20 * 60 * 1000;
         }
       } else if (activeMosaic === "+1 Hectólitro") {
@@ -102,15 +139,23 @@ export default function ActualizacionPage() {
 
       return matchNumero && matchStatus && matchMosaic;
     });
-  }, [allRows, clienteNumero, filterStatus, activeMosaic]);
+  }, [allRows, clienteNumero, filterStatus, activeMosaic, now]);
 
   const mosaics = useMemo(() => {
-    const pendientes = allRows.filter(r => (r.actualizacion || "pendiente") === "pendiente").length;
+    const pendingItems = allRows.filter(r => (r.actualizacion || "pendiente") === "pendiente");
+    const pendientes = pendingItems.length;
+    const oldestPending = pendingItems.length > 0 
+      ? Math.min(...pendingItems.map(r => new Date(r.created_at).getTime()))
+      : null;
+    const maxMinutes = oldestPending ? Math.floor((now - oldestPending) / 60000) : 0;
     
     const mas20Min = allRows.filter(r => {
-      if (!r.updated_at || (r.actualizacion || "pendiente") === "pendiente") return false;
+        if (r.actualizacion === "entregado") return false;
       const start = new Date(r.created_at).getTime();
-      const end = new Date(r.updated_at).getTime();
+      const isFinished = (r.actualizacion || "pendiente") !== "pendiente";
+      const end = isFinished 
+        ? (r.updated_at ? new Date(r.updated_at).getTime() : start)
+        : now;
       return (end - start) > 20 * 60 * 1000;
     }).length;
 
@@ -118,13 +163,16 @@ export default function ActualizacionPage() {
     
     const detractores = allRows.filter(r => r.puntuacion !== null && r.puntuacion <= 4).length;
 
-    return [
-      { label: "Pendientes", value: pendientes, icon: UserCheck, color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-50 dark:bg-amber-950/30", border: "border-amber-200 dark:border-amber-800" },
-      { label: "+20 Minutos", value: mas20Min, icon: Timer, color: "text-red-600 dark:text-red-400", bg: "bg-red-50 dark:bg-red-950/30", border: "border-red-200 dark:border-red-800" },
-      { label: "+1 Hectólitro", value: mas1Hl, icon: Droplets, color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-50 dark:bg-blue-950/30", border: "border-blue-200 dark:border-blue-800" },
-      { label: "Detractores (<=4)", value: detractores, icon: Star, color: "text-purple-600 dark:text-purple-400", bg: "bg-purple-50 dark:bg-purple-950/30", border: "border-purple-200 dark:border-purple-800" },
-    ];
-  }, [allRows]);
+    return {
+      stats: { pendientes, maxMinutes },
+      items: [
+        { label: "Pendientes", value: pendientes, icon: UserCheck, color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-50 dark:bg-amber-950/30", border: "border-amber-200 dark:border-amber-800" },
+        { label: "+20 Minutos", value: mas20Min, icon: Timer, color: "text-red-600 dark:text-red-400", bg: "bg-red-50 dark:bg-red-950/30", border: "border-red-200 dark:border-red-800" },
+        { label: "+1 Hectólitro", value: mas1Hl, icon: Droplets, color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-50 dark:bg-blue-950/30", border: "border-blue-200 dark:border-blue-800" },
+        { label: "Detractores (<=4)", value: detractores, icon: Star, color: "text-purple-600 dark:text-purple-400", bg: "bg-purple-50 dark:bg-purple-950/30", border: "border-purple-200 dark:border-amber-800" },
+      ]
+    };
+  }, [allRows, now]);
 
   async function onUpdate(row: Row, value: NonNullable<Row["actualizacion"]>) {
     setStatus({ type: "loading" });
@@ -135,9 +183,9 @@ export default function ActualizacionPage() {
         actualizacion: value,
       });
       // Actualizar localmente para evitar recargar todo
-      const now = new Date().toISOString();
+      const nowTs = new Date().toISOString();
       setAllRows((prev) =>
-        prev.map((r) => (r.id === row.id ? { ...r, actualizacion: value, updated_at: now } : r))
+        prev.map((r): Row => (r.id === row.id ? { ...r, actualizacion: value, updated_at: nowTs } : r))
       );
       setStatus({ type: "done", count: allRows.length });
     } catch (e) {
@@ -161,9 +209,30 @@ export default function ActualizacionPage() {
 
   return (
     <div className="grid grid-cols-1 gap-6">
+      {/* Aviso de la IA (Robot) */}
+      {showAiAviso && mosaics.stats.pendientes > 0 && (
+        <div className="relative flex items-center gap-3 rounded-lg border border-blue-200 bg-blue-50/50 p-3 pr-10 shadow-sm dark:border-blue-800 dark:bg-blue-900/20 animate-in slide-in-from-top duration-300">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-800">
+            <Bot className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
+              ¡Hola! Tenés <span className="font-bold">{mosaics.stats.pendientes}</span> {mosaics.stats.pendientes === 1 ? 'pendiente' : 'pendientes'} y el más antiguo lleva <span className="font-bold">{mosaics.stats.maxMinutes}</span> {mosaics.stats.maxMinutes === 1 ? 'minuto' : 'minutos'}.
+            </p>
+          </div>
+          <button
+            onClick={() => setShowAiAviso(false)}
+            className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-blue-400 hover:bg-blue-100 hover:text-blue-600 dark:hover:bg-blue-800"
+            title="Cerrar aviso"
+          >
+            <X size={16} />
+          </button>
+        </div>
+      )}
+
       {/* Mosaicos de decisión */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {mosaics.map((m) => (
+        {mosaics.items.map((m) => (
           <button
             key={m.label}
             onClick={() => setActiveMosaic(activeMosaic === m.label ? null : m.label)}
@@ -175,14 +244,14 @@ export default function ActualizacionPage() {
           >
             <div className="flex items-center justify-between">
               <m.icon className={`h-5 w-5 transition-colors ${
-                activeMosaic === m.label ? m.color : "text-muted-foreground group-hover:" + m.color.split(' ')[0]
+                activeMosaic === m.label ? m.color : "text-muted-foreground group-hover:" + m.color
               }`} />
               <span className={`text-2xl font-bold transition-colors ${
-                activeMosaic === m.label ? m.color.split(' ')[0] : "text-card-foreground"
+                activeMosaic === m.label ? m.color : "text-card-foreground"
               }`}>{m.value}</span>
             </div>
             <div className={`mt-1 text-[10px] font-bold uppercase leading-tight transition-colors ${
-              activeMosaic === m.label ? m.color.split(' ')[0] : "text-muted-foreground"
+              activeMosaic === m.label ? m.color : "text-muted-foreground"
             } opacity-80`}>
               {m.label}
             </div>
@@ -276,8 +345,8 @@ export default function ActualizacionPage() {
                 <span>Modulaciones</span>
                 {activeMosaic && (
                   <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
-                    mosaics.find(m => m.label === activeMosaic)?.bg
-                  } ${mosaics.find(m => m.label === activeMosaic)?.color}`}>
+                    mosaics.items.find(m => m.label === activeMosaic)?.bg
+                  } ${mosaics.items.find(m => m.label === activeMosaic)?.color}`}>
                     Filtrado por: {activeMosaic}
                     <button onClick={() => setActiveMosaic(null)} className="ml-1.5 hover:opacity-70">
                       <X size={10} strokeWidth={3} />
@@ -304,17 +373,26 @@ export default function ActualizacionPage() {
                   {filteredRows.map((r) => (
                     <tr key={r.id} className="hover:bg-muted/30 transition-colors">
                       <td className="px-3 py-2">
-                        <div className="whitespace-nowrap">
+                        <div className="whitespace-nowrap font-medium">
                           {r.created_at ? new Date(r.created_at).toLocaleDateString("es-AR") : "—"}
                         </div>
                         <div className="text-[10px] text-muted-foreground flex items-center gap-1">
                           <Clock size={8} />
                           {r.created_at ? new Date(r.created_at).toLocaleTimeString("es-AR", { hour: '2-digit', minute: '2-digit' }) : "—"}
+                          {(r.actualizacion || "pendiente") === "pendiente" && (now - new Date(r.created_at).getTime() > 20 * 60 * 1000) && (
+                            <span className="ml-1 inline-flex items-center gap-0.5 text-red-600 dark:text-red-400 font-bold animate-pulse">
+                              <Timer size={8} />
+                              +{Math.floor((now - new Date(r.created_at).getTime()) / 60000)}m
+                            </span>
+                          )}
                         </div>
                         {r.updated_at && (r.actualizacion !== "pendiente") && (
                           <div className="text-[10px] text-green-600 dark:text-green-400 flex items-center gap-1 mt-0.5 border-t border-border/50 pt-0.5">
                             <UserCheck size={8} />
                             {new Date(r.updated_at).toLocaleTimeString("es-AR", { hour: '2-digit', minute: '2-digit' })}
+                            <span className="ml-auto text-[8px] opacity-70">
+                              {Math.floor((new Date(r.updated_at).getTime() - new Date(r.created_at).getTime()) / 60000)}m
+                            </span>
                           </div>
                         )}
                       </td>
@@ -338,7 +416,7 @@ export default function ActualizacionPage() {
                       <td className="px-3 py-2 max-w-[100px] truncate" title={r.chofer ?? ""}>{r.chofer ?? "—"}</td>
                       <td className="px-3 py-2 text-center">
                         <div className="font-medium">{r.bultos ?? "0"}</div>
-                        <div className="text-[10px] text-blue-500 font-bold">{r.hl ? `${r.hl} HL` : "0 HL"}</div>
+                        <div className="text-[10px] text-blue-600 dark:text-blue-400 font-bold">{r.hl ? `${r.hl} HL` : "0 HL"}</div>
                       </td>
                       <td className="px-3 py-2">
                         <select
@@ -349,10 +427,10 @@ export default function ActualizacionPage() {
                               void onUpdate(r, v);
                             });
                           }}
-                          className={`rounded-md border border-border px-2 py-1 text-[10px] font-medium outline-none focus:ring-2 focus:ring-ring ${
-                            r.actualizacion === "entregado" ? "bg-green-100 text-green-800 border-green-200" :
-                            r.actualizacion === "rechazado" ? "bg-red-100 text-red-800 border-red-200" :
-                            "bg-amber-100 text-amber-800 border-amber-200"
+                          className={`rounded-md border border-border px-2 py-1 text-[10px] font-bold outline-none focus:ring-2 focus:ring-ring transition-colors ${
+                            r.actualizacion === "entregado" ? "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800" :
+                            r.actualizacion === "rechazado" ? "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800" :
+                            "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800"
                           }`}
                         >
                           {OPTIONS.map((opt) => (
