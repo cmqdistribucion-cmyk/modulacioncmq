@@ -42,6 +42,7 @@ export default function ActualizacionPage() {
   const env = useMemo(() => getSupabaseEnv(), []);
   const [clienteNumero, setClienteNumero] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("todos");
+  const [activeMosaic, setActiveMosaic] = useState<string | null>(null);
   
   const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split("T")[0]);
   
@@ -82,9 +83,26 @@ export default function ActualizacionPage() {
     return allRows.filter((r) => {
       const matchNumero = !clienteNumero.trim() || r.cliente_numero.includes(clienteNumero.trim());
       const matchStatus = filterStatus === "todos" || (r.actualizacion || "pendiente") === filterStatus;
-      return matchNumero && matchStatus;
+      
+      let matchMosaic = true;
+      if (activeMosaic === "Pendientes") {
+        matchMosaic = (r.actualizacion || "pendiente") === "pendiente";
+      } else if (activeMosaic === "+20 Minutos") {
+        if (!r.updated_at || (r.actualizacion || "pendiente") === "pendiente") matchMosaic = false;
+        else {
+          const start = new Date(r.created_at).getTime();
+          const end = new Date(r.updated_at).getTime();
+          matchMosaic = (end - start) > 20 * 60 * 1000;
+        }
+      } else if (activeMosaic === "+1 Hectólitro") {
+        matchMosaic = (r.hl || 0) > 1;
+      } else if (activeMosaic === "Detractores (<=4)") {
+        matchMosaic = r.puntuacion !== null && r.puntuacion <= 4;
+      }
+
+      return matchNumero && matchStatus && matchMosaic;
     });
-  }, [allRows, clienteNumero, filterStatus]);
+  }, [allRows, clienteNumero, filterStatus, activeMosaic]);
 
   const mosaics = useMemo(() => {
     const pendientes = allRows.filter(r => (r.actualizacion || "pendiente") === "pendiente").length;
@@ -101,10 +119,10 @@ export default function ActualizacionPage() {
     const detractores = allRows.filter(r => r.puntuacion !== null && r.puntuacion <= 4).length;
 
     return [
-      { label: "Pendientes", value: pendientes, icon: UserCheck, color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-50 dark:bg-amber-950/30" },
-      { label: "+20 Minutos", value: mas20Min, icon: Timer, color: "text-red-600 dark:text-red-400", bg: "bg-red-50 dark:bg-red-950/30" },
-      { label: "+1 Hectólitro", value: mas1Hl, icon: Droplets, color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-50 dark:bg-blue-950/30" },
-      { label: "Detractores (<=4)", value: detractores, icon: Star, color: "text-purple-600 dark:text-purple-400", bg: "bg-purple-50 dark:bg-purple-950/30" },
+      { label: "Pendientes", value: pendientes, icon: UserCheck, color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-50 dark:bg-amber-950/30", border: "border-amber-200 dark:border-amber-800" },
+      { label: "+20 Minutos", value: mas20Min, icon: Timer, color: "text-red-600 dark:text-red-400", bg: "bg-red-50 dark:bg-red-950/30", border: "border-red-200 dark:border-red-800" },
+      { label: "+1 Hectólitro", value: mas1Hl, icon: Droplets, color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-50 dark:bg-blue-950/30", border: "border-blue-200 dark:border-blue-800" },
+      { label: "Detractores (<=4)", value: detractores, icon: Star, color: "text-purple-600 dark:text-purple-400", bg: "bg-purple-50 dark:bg-purple-950/30", border: "border-purple-200 dark:border-purple-800" },
     ];
   }, [allRows]);
 
@@ -145,15 +163,34 @@ export default function ActualizacionPage() {
       {/* Mosaicos de decisión */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {mosaics.map((m) => (
-          <div key={m.label} className={`rounded-xl border border-border ${m.bg} p-4 shadow-sm transition-colors`}>
+          <button
+            key={m.label}
+            onClick={() => setActiveMosaic(activeMosaic === m.label ? null : m.label)}
+            className={`group relative text-left rounded-xl border p-4 shadow-sm transition-all active:scale-95 ${
+              activeMosaic === m.label 
+                ? `${m.bg} ${m.border} ring-2 ring-ring ring-offset-2` 
+                : `border-border bg-card hover:${m.bg} hover:${m.border}`
+            }`}
+          >
             <div className="flex items-center justify-between">
-              <m.icon className={`h-5 w-5 ${m.color}`} />
-              <span className={`text-2xl font-bold ${m.color.split(' ')[0]}`}>{m.value}</span>
+              <m.icon className={`h-5 w-5 transition-colors ${
+                activeMosaic === m.label ? m.color : "text-muted-foreground group-hover:" + m.color.split(' ')[0]
+              }`} />
+              <span className={`text-2xl font-bold transition-colors ${
+                activeMosaic === m.label ? m.color.split(' ')[0] : "text-card-foreground"
+              }`}>{m.value}</span>
             </div>
-            <div className={`mt-1 text-[10px] font-bold uppercase leading-tight ${m.color.split(' ')[0]} opacity-80`}>
+            <div className={`mt-1 text-[10px] font-bold uppercase leading-tight transition-colors ${
+              activeMosaic === m.label ? m.color.split(' ')[0] : "text-muted-foreground"
+            } opacity-80`}>
               {m.label}
             </div>
-          </div>
+            {activeMosaic === m.label && (
+              <div className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-foreground text-[8px] text-background">
+                Ô£ò
+              </div>
+            )}
+          </button>
         ))}
       </div>
 
@@ -233,8 +270,18 @@ export default function ActualizacionPage() {
 
         {filteredRows.length ? (
           <div className="mt-4 overflow-hidden rounded-lg border border-border">
-            <div className="border-b border-border bg-card px-3 py-2 text-sm font-medium flex justify-between">
-              <span>Modulaciones</span>
+            <div className="border-b border-border bg-card px-3 py-2 text-sm font-medium flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <span>Modulaciones</span>
+                {activeMosaic && (
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                    mosaics.find(m => m.label === activeMosaic)?.bg
+                  } ${mosaics.find(m => m.label === activeMosaic)?.color}`}>
+                    Filtrado por: {activeMosaic}
+                    <button onClick={() => setActiveMosaic(null)} className="ml-1.5 hover:opacity-70">Ô£ò</button>
+                  </span>
+                )}
+              </div>
               <span className="text-muted-foreground font-normal text-xs">Total: {filteredRows.length}</span>
             </div>
             <div className="max-h-[28rem] overflow-auto">
@@ -321,6 +368,14 @@ export default function ActualizacionPage() {
         ) : status.type === "done" ? (
           <div className="mt-3 rounded-md border border-border bg-muted px-3 py-2 text-sm text-muted-foreground text-center py-8">
             <p>No se encontraron modulaciones con los filtros aplicados.</p>
+            {activeMosaic && (
+              <button 
+                onClick={() => setActiveMosaic(null)}
+                className="mt-2 text-xs text-blue-600 dark:text-blue-400 font-bold hover:underline"
+              >
+                Limpiar filtro de mosaico
+              </button>
+            )}
           </div>
         ) : null}
       </div>
