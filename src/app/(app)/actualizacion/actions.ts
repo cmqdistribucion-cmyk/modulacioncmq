@@ -16,18 +16,42 @@ export async function listModulacionesByPeriod(params: { month: number; year: nu
   const startDate = new Date(params.year, params.month, 1).toISOString();
   const endDate = new Date(params.year, params.month + 1, 0, 23, 59, 59).toISOString();
 
+  const fullSelect = "id,created_at,updated_at,cliente_numero,cliente_nombre,motivo,chofer,bultos,hl,actualizacion,created_by_email";
   const { data, error } = await supabase
     .from("modulaciones")
-    .select("id,created_at,updated_at,cliente_numero,cliente_nombre,motivo,chofer,bultos,hl,actualizacion,created_by_email")
+    .select(fullSelect)
     .eq("created_by", userData.user.id)
     .gte("created_at", startDate)
     .lte("created_at", endDate)
     .order("created_at", { ascending: false });
 
-  if (error) throw new Error(error.message);
+  let resultData = data;
+
+  if (error) {
+    const msg = error.message.toLowerCase();
+    const isMissingColumn = msg.includes("does not exist") || msg.includes("could not find");
+    
+    if (isMissingColumn) {
+      // Fallback a columnas básicas si las nuevas no existen
+      const safeSelect = "id,created_at,cliente_numero,cliente_nombre,motivo,chofer,bultos";
+      const { data: safeData, error: safeError } = await supabase
+        .from("modulaciones")
+        .select(safeSelect)
+        .eq("created_by", userData.user.id)
+        .gte("created_at", startDate)
+        .lte("created_at", endDate)
+        .order("created_at", { ascending: false });
+      
+      if (safeError) throw new Error(safeError.message);
+      resultData = safeData;
+    } else {
+      throw new Error(error.message);
+    }
+  }
 
   // Obtener puntuaciones (RMD) para estos clientes
-  const numeros = Array.from(new Set((data ?? []).map(r => r.cliente_numero)));
+  const items = resultData ?? [];
+  const numeros = Array.from(new Set(items.map(r => r.cliente_numero)));
   let scores: Record<string, number> = {};
   
   if (numeros.length > 0) {
@@ -46,7 +70,7 @@ export async function listModulacionesByPeriod(params: { month: number; year: nu
     }
   }
 
-  return (data ?? []).map(r => ({
+  return items.map(r => ({
     ...r,
     puntuacion: scores[r.cliente_numero] ?? null
   })) as Array<Record<string, unknown>>;
