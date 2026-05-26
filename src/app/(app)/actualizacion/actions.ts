@@ -4,7 +4,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 type ActualizacionValue = "rechazado" | "pendiente" | "entregado";
 
-export async function listModulacionesByPeriod(params: { month: number; year: number }) {
+export async function listModulacionesByDate(params: { date: string }) {
   const supabase = await createSupabaseServerClient();
   if (!supabase) throw new Error("Supabase no configurado");
 
@@ -12,9 +12,9 @@ export async function listModulacionesByPeriod(params: { month: number; year: nu
   if (userError) throw new Error(userError.message);
   if (!userData.user) throw new Error("No autenticado");
 
-  // Rango de fechas para el mes y año seleccionados
-  const startDate = new Date(params.year, params.month, 1).toISOString();
-  const endDate = new Date(params.year, params.month + 1, 0, 23, 59, 59).toISOString();
+  // Rango de fechas para el día seleccionado
+  const startDate = `${params.date}T00:00:00.000Z`;
+  const endDate = `${params.date}T23:59:59.999Z`;
 
   const fullSelect = "id,created_at,updated_at,cliente_numero,cliente_nombre,motivo,chofer,bultos,hl,actualizacion,created_by_email";
   const { data, error } = await supabase

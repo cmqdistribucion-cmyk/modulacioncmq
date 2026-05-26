@@ -2,9 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import { getSupabaseEnv } from "@/lib/supabase/env";
-import { Clock, Star, Droplets, UserCheck, Timer } from "lucide-react";
+import { Clock, Star, Droplets, UserCheck, Timer, Calendar } from "lucide-react";
 import {
-  listModulacionesByPeriod,
+  listModulacionesByDate,
   updateModulacionActualizacion,
 } from "./actions";
 
@@ -25,10 +25,6 @@ type Row = {
 };
 
 const OPTIONS: Array<NonNullable<Row["actualizacion"]>> = ["pendiente", "entregado", "rechazado"];
-const MONTHS = [
-  "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
-  "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
-];
 
 function Stars({ value }: { value: number | null }) {
   if (value === null) return <span className="text-muted-foreground/30 text-[10px]">Sin RMD</span>;
@@ -47,9 +43,7 @@ export default function ActualizacionPage() {
   const [clienteNumero, setClienteNumero] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("todos");
   
-  const now = new Date();
-  const [selectedMonth, setSelectedMonth] = useState(now.getMonth());
-  const [selectedYear, setSelectedYear] = useState(now.getFullYear());
+  const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split("T")[0]);
   
   const [allRows, setAllRows] = useState<Row[]>([]);
   const [status, setStatus] = useState<
@@ -60,21 +54,11 @@ export default function ActualizacionPage() {
   >({ type: "idle" });
   const [isPending, startTransition] = useTransition();
 
-  // Años disponibles (desde 2024 hasta el actual)
-  const years = useMemo(() => {
-    const currentYear = new Date().getFullYear();
-    const startYear = 2024;
-    const res = [];
-    for (let y = currentYear; y >= startYear; y--) res.push(y);
-    return res;
-  }, []);
-
   const loadData = useCallback(async () => {
     try {
       setStatus({ type: "loading" });
-      const data = await listModulacionesByPeriod({
-        month: selectedMonth,
-        year: selectedYear
+      const data = await listModulacionesByDate({
+        date: selectedDate
       });
       setAllRows(data as unknown as Row[]);
       setStatus({ type: "done", count: data.length });
@@ -85,7 +69,7 @@ export default function ActualizacionPage() {
         message: e instanceof Error ? e.message : "Error al cargar modulaciones",
       });
     }
-  }, [selectedMonth, selectedYear]);
+  }, [selectedDate]);
 
   // Cargar modulaciones cuando cambie el periodo
   useEffect(() => {
@@ -207,7 +191,7 @@ export default function ActualizacionPage() {
         </div>
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-12 items-end">
-          <div className="sm:col-span-6">
+          <div className="sm:col-span-8">
             <label className="mb-1 block text-[10px] font-bold uppercase text-muted-foreground">
               Buscar Cliente
             </label>
@@ -219,33 +203,19 @@ export default function ActualizacionPage() {
               inputMode="numeric"
             />
           </div>
-          <div className="sm:col-span-3">
+          <div className="sm:col-span-4">
             <label className="mb-1 block text-[10px] font-bold uppercase text-muted-foreground">
-              Mes
+              Filtrar por Día
             </label>
-            <select
-              value={selectedMonth}
-              onChange={(e) => setSelectedMonth(Number(e.target.value))}
-              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
-            >
-              {MONTHS.map((m, idx) => (
-                <option key={m} value={idx}>{m}</option>
-              ))}
-            </select>
-          </div>
-          <div className="sm:col-span-3">
-            <label className="mb-1 block text-[10px] font-bold uppercase text-muted-foreground">
-              Año
-            </label>
-            <select
-              value={selectedYear}
-              onChange={(e) => setSelectedYear(Number(e.target.value))}
-              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
-            >
-              {years.map(y => (
-                <option key={y} value={y}>{y}</option>
-              ))}
-            </select>
+            <div className="relative">
+              <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="w-full rounded-md border border-border bg-background pl-9 pr-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+              />
+            </div>
           </div>
         </div>
 
