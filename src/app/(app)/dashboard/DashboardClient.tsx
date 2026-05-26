@@ -56,6 +56,7 @@ function formatWhatsappText(params: {
     `Motivo: *${params.input.motivo}*`,
     `Chofer: *${params.input.chofer}*`,
     `Bultos: *${params.input.bultos}*`,
+    `HL: *${params.input.hl}*`,
     params.input.comentario ? `Comentario: *${params.input.comentario}*` : null,
   ].filter((x): x is string => Boolean(x));
 
@@ -115,6 +116,7 @@ export function DashboardClient() {
     motivo: DEFAULT_MOTIVOS[0],
     chofer: "",
     bultos: 1,
+    hl: 0,
     comentario: "",
   });
 
@@ -219,6 +221,7 @@ export function DashboardClient() {
       motivo: motivos[0] || DEFAULT_MOTIVOS[0],
       chofer: "",
       bultos: 1,
+      hl: 0,
       comentario: "",
     });
     setLastSentInfo(null);
@@ -508,6 +511,7 @@ export function DashboardClient() {
           motivo: effectiveMotivo,
           chofer: effectiveChofer,
           bultos: input.bultos,
+          hl: input.hl,
           comentario: input.comentario,
         });
         setSubmitOk(true);
@@ -619,6 +623,7 @@ export function DashboardClient() {
         motivo: extracted.motivo ?? input.motivo,
         chofer: matchedChofer,
         bultos: typeof extracted.bultos === "number" ? extracted.bultos : (parseInt(extracted.bultos) || input.bultos),
+        hl: typeof extracted.hl === "number" ? extracted.hl : (parseFloat(extracted.hl) || 0),
         comentario: extracted.comentario || "",
       };
       
@@ -1265,6 +1270,28 @@ export function DashboardClient() {
                       ))}
                     </div>
                   </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-card-foreground mb-1">Bultos</label>
+                  <input
+                    type="number"
+                    value={input.bultos}
+                    onChange={(e) => setInput(prev => ({ ...prev, bultos: parseInt(e.target.value) || 0 }))}
+                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-card-foreground mb-1">HL (Hectólitros)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={input.hl}
+                    onChange={(e) => setInput(prev => ({ ...prev, hl: parseFloat(e.target.value) || 0 }))}
+                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                  />
                 </div>
               </div>
 

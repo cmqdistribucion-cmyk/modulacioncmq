@@ -14,6 +14,7 @@ export type ModulacionInput = {
   motivo: string;
   chofer: string;
   bultos: number;
+  hl: number;
   comentario: string;
 };
 

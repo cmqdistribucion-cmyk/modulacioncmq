@@ -13,6 +13,7 @@ export async function createModulacion(params: {
   motivo: string;
   chofer: string;
   bultos: number;
+  hl?: number;
   comentario: string;
 }) {
   const supabase = await createSupabaseServerClient();
@@ -31,6 +32,7 @@ export async function createModulacion(params: {
     motivo: params.motivo,
     chofer: params.chofer,
     bultos: params.bultos,
+    hl: params.hl,
     comentario: params.comentario,
     created_by: userData.user.id,
   };
@@ -200,6 +202,7 @@ export async function analyzeScreenshotWithOpenRouter(params: {
 - motivo: El motivo del rechazo o estado (ej: "Cerrado", "No hay nadie"). Elige el que mejor coincida de esta lista: ${params.motivos.join(", ")}.
 - chofer: El nombre del conductor/chofer (ej: "Perez Lucas"). Elige el que mejor coincida de esta lista: ${params.choferes.join(", ")}. Ignora los números de legajo si aparecen.
 - bultos: Cantidad de bultos (número).
+- hl: Cantidad de hectolitros (número decimal, ej: 0.27). Busca el texto que diga "hl" o "hectolitros".
 - comentario: Cualquier observación adicional, texto de rechazo o nota que aparezca (ej: "Visita: Cerrado", "Local no abrió"). Extrae el texto completo que explique el motivo.
 - sv: El nombre del supervisor (asignado a) si aparece.
 
