@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import { getSupabaseEnv } from "@/lib/supabase/env";
-import { Clock, Star, AlertCircle, Droplets, UserCheck, Timer } from "lucide-react";
+import { Clock, Star, Droplets, UserCheck, Timer } from "lucide-react";
 import {
   listModulacionesByPeriod,
   updateModulacionActualizacion,
@@ -72,11 +72,11 @@ export default function ActualizacionPage() {
   const loadData = useCallback(async () => {
     try {
       setStatus({ type: "loading" });
-      const data = (await listModulacionesByPeriod({
+      const data = await listModulacionesByPeriod({
         month: selectedMonth,
         year: selectedYear
-      })) as unknown as Row[];
-      setAllRows(data);
+      });
+      setAllRows(data as unknown as Row[]);
       setStatus({ type: "done", count: data.length });
     } catch (e) {
       setAllRows([]);
@@ -117,10 +117,10 @@ export default function ActualizacionPage() {
     const detractores = allRows.filter(r => r.puntuacion !== null && r.puntuacion <= 4).length;
 
     return [
-      { label: "Pendientes", value: pendientes, icon: UserCheck, color: "text-amber-500", bg: "bg-amber-50" },
-      { label: "+20 Minutos", value: mas20Min, icon: Timer, color: "text-red-500", bg: "bg-red-50" },
-      { label: "+1 Hectólitro", value: mas1Hl, icon: Droplets, color: "text-blue-500", bg: "bg-blue-50" },
-      { label: "Detractores (<=4)", value: detractores, icon: Star, color: "text-purple-500", bg: "bg-purple-50" },
+      { label: "Pendientes", value: pendientes, icon: UserCheck, color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-50 dark:bg-amber-950/30" },
+      { label: "+20 Minutos", value: mas20Min, icon: Timer, color: "text-red-600 dark:text-red-400", bg: "bg-red-50 dark:bg-red-950/30" },
+      { label: "+1 Hectólitro", value: mas1Hl, icon: Droplets, color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-50 dark:bg-blue-950/30" },
+      { label: "Detractores (<=4)", value: detractores, icon: Star, color: "text-purple-600 dark:text-purple-400", bg: "bg-purple-50 dark:bg-purple-950/30" },
     ];
   }, [allRows]);
 
@@ -161,12 +161,12 @@ export default function ActualizacionPage() {
       {/* Mosaicos de decisión */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {mosaics.map((m) => (
-          <div key={m.label} className={`rounded-xl border border-border ${m.bg} p-4 shadow-sm`}>
+          <div key={m.label} className={`rounded-xl border border-border ${m.bg} p-4 shadow-sm transition-colors`}>
             <div className="flex items-center justify-between">
               <m.icon className={`h-5 w-5 ${m.color}`} />
-              <span className="text-2xl font-bold">{m.value}</span>
+              <span className={`text-2xl font-bold ${m.color.split(' ')[0]}`}>{m.value}</span>
             </div>
-            <div className="mt-1 text-[10px] font-bold uppercase text-muted-foreground leading-tight">
+            <div className={`mt-1 text-[10px] font-bold uppercase leading-tight ${m.color.split(' ')[0]} opacity-80`}>
               {m.label}
             </div>
           </div>

@@ -52,7 +52,7 @@ export async function listModulacionesByPeriod(params: { month: number; year: nu
   // Obtener puntuaciones (RMD) para estos clientes
   const items = resultData ?? [];
   const numeros = Array.from(new Set(items.map(r => r.cliente_numero)));
-  let scores: Record<string, number> = {};
+  const scores: Record<string, number> = {};
   
   if (numeros.length > 0) {
     const { data: scoreData } = await supabase
