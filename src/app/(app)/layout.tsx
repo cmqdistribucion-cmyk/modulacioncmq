@@ -1,5 +1,6 @@
 import { LogoutButton } from "@/components/logout-button";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { AuthInactivityHandler } from "@/components/auth-inactivity-handler";
 import Link from "next/link";
 import { isAdmin } from "@/lib/auth/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -32,6 +33,7 @@ export default async function AppLayout({
   }
   return (
     <div className="flex min-h-full flex-1 flex-col">
+      <AuthInactivityHandler />
       <header className="border-b border-blue-700 bg-blue-600 text-white">
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-3 px-6 py-4">
           <div className="min-w-0">
