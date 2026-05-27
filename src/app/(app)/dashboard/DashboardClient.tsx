@@ -833,18 +833,18 @@ export function DashboardClient() {
     <div className="flex flex-col gap-6">
       {/* Aviso de la IA (Robot) */}
       {showAiAviso && pendingStats.count > 0 && (
-        <div className="relative flex items-center gap-3 rounded-lg border border-blue-200 bg-blue-50/50 p-3 pr-10 shadow-sm dark:border-blue-800 dark:bg-blue-900/20 animate-in slide-in-from-top duration-300">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-800">
-            <Bot className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+        <div className="relative flex items-center gap-3 rounded-lg border border-red-200 bg-red-50/50 p-3 pr-10 shadow-sm dark:border-red-800 dark:bg-red-900/20 animate-in slide-in-from-top duration-300">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-100 dark:bg-red-800">
+            <Bot className="h-6 w-6 text-red-600 dark:text-red-400" />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
+            <p className="text-sm font-medium text-red-900 dark:text-red-100">
               ¡Hola! Tenés <span className="font-bold">{pendingStats.count}</span> {pendingStats.count === 1 ? 'pendiente' : 'pendientes'} y el más antiguo lleva <span className="font-bold">{pendingStats.maxMinutes}</span> {pendingStats.maxMinutes === 1 ? 'minuto' : 'minutos'}.
             </p>
           </div>
           <button
             onClick={() => setShowAiAviso(false)}
-            className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-blue-400 hover:bg-blue-100 hover:text-blue-600 dark:hover:bg-blue-800"
+            className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-red-400 hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-800"
             title="Cerrar aviso"
           >
             <X size={16} />
