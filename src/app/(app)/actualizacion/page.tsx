@@ -132,9 +132,9 @@ export default function ActualizacionPage() {
           matchMosaic = (end - start) > 20 * 60 * 1000;
         }
       } else if (activeMosaic === "+1 Hectólitro") {
-        matchMosaic = (r.hl || 0) > 1;
+        matchMosaic = (r.actualizacion || "pendiente") === "pendiente" && (r.hl || 0) > 1;
       } else if (activeMosaic === "Detractores (<=4)") {
-        matchMosaic = r.puntuacion !== null && r.puntuacion <= 4;
+        matchMosaic = (r.actualizacion || "pendiente") === "pendiente" && r.puntuacion !== null && r.puntuacion <= 4;
       }
 
       return matchNumero && matchStatus && matchMosaic;
@@ -159,17 +159,17 @@ export default function ActualizacionPage() {
       return (end - start) > 20 * 60 * 1000;
     }).length;
 
-    const mas1Hl = allRows.filter(r => (r.hl || 0) > 1).length;
+    const mas1Hl = pendingItems.filter(r => (r.hl || 0) > 1).length;
     
-    const detractores = allRows.filter(r => r.puntuacion !== null && r.puntuacion <= 4).length;
+    const detractores = pendingItems.filter(r => r.puntuacion !== null && r.puntuacion <= 4).length;
 
     return {
       stats: { pendientes, maxMinutes },
       items: [
-        { label: "Pendientes", value: pendientes, icon: UserCheck, color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-50 dark:bg-amber-950/30", border: "border-amber-200 dark:border-amber-800" },
-        { label: "+20 Minutos", value: mas20Min, icon: Timer, color: "text-red-600 dark:text-red-400", bg: "bg-red-50 dark:bg-red-950/30", border: "border-red-200 dark:border-red-800" },
-        { label: "+1 Hectólitro", value: mas1Hl, icon: Droplets, color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-50 dark:bg-blue-950/30", border: "border-blue-200 dark:border-blue-800" },
-        { label: "Detractores (<=4)", value: detractores, icon: Star, color: "text-purple-600 dark:text-purple-400", bg: "bg-purple-50 dark:bg-purple-950/30", border: "border-purple-200 dark:border-amber-800" },
+        { label: "Pendientes", value: pendientes, icon: UserCheck, color: "text-black", bg: "bg-[#FFEC8B]", border: "border-amber-200" },
+        { label: "+20 Minutos", value: mas20Min, icon: Timer, color: "text-black", bg: "bg-[#FFFACD]", border: "border-yellow-200" },
+        { label: "+1 Hectólitro", value: mas1Hl, icon: Droplets, color: "text-black", bg: "bg-[#FF9999]", border: "border-red-300" },
+        { label: "Detractores (<=4)", value: detractores, icon: Star, color: "text-black", bg: "bg-[#FFCC80]", border: "border-orange-300" },
       ]
     };
   }, [allRows, now]);
@@ -236,10 +236,10 @@ export default function ActualizacionPage() {
           <button
             key={m.label}
             onClick={() => setActiveMosaic(activeMosaic === m.label ? null : m.label)}
-            className={`group relative text-left rounded-xl border p-4 shadow-sm transition-all active:scale-95 ${
+            className={`group relative text-left rounded-xl border p-4 shadow-sm transition-all active:scale-95 ${m.bg} ${m.border} ${
               activeMosaic === m.label 
-                ? `${m.bg} ${m.border} ring-2 ring-ring ring-offset-2` 
-                : `border-border bg-card hover:${m.bg} hover:${m.border}`
+                ? `ring-2 ring-ring ring-offset-2` 
+                : `opacity-90 hover:opacity-100`
             }`}
           >
             <div className="flex items-center justify-between">
