@@ -28,9 +28,9 @@ export function ExportModulaciones() {
         const rangeTo = rangeFrom + pageSize - 1;
 
         const selectNew =
-          "id,created_at,created_by,created_by_email,actualizacion,cliente_numero,cliente_nombre,zona,vendedor,sv,motivo,chofer,bultos,comentario";
+          "id,created_at,created_by,created_by_email,actualizacion,cliente_numero,cliente_nombre,zona,vendedor,sv,motivo,chofer,bultos,hl,comentario";
         const selectOld =
-          "id,created_at,created_by,cliente_numero,cliente_nombre,zona,vendedor,sv,motivo,chofer,bultos,comentario";
+          "id,created_at,created_by,cliente_numero,cliente_nombre,zona,vendedor,sv,motivo,chofer,bultos,hl,comentario";
 
         const baseQuery = legacySelect
           ? supabase.from("modulaciones").select(selectOld)
@@ -76,6 +76,7 @@ export function ExportModulaciones() {
         Motivo: r.motivo ?? "",
         Chofer: r.chofer ?? "",
         Bultos: r.bultos ?? "",
+        Hectolitros: r.hl ?? "",
         Comentario: r.comentario ?? "",
         Actualización: r.actualizacion ?? "",
         Usuario: r.created_by_email ?? "",
