@@ -39,7 +39,12 @@ export default async function AppLayout({
       }}
     >
       <AuthInactivityHandler />
-      <header className="border-b border-red-700 bg-red-600/90 text-white backdrop-blur-sm">
+      <header 
+        className="border-b border-white/10 text-white backdrop-blur-xl"
+        style={{
+          background: 'linear-gradient(135deg, rgba(230, 57, 70, 0.4) 0%, rgba(29, 53, 87, 0.5) 100%)',
+        }}
+      >
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-3 px-6 py-4">
           <div className="min-w-0">
             <div className="truncate text-base font-semibold">
