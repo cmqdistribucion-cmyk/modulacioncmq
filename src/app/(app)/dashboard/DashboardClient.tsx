@@ -755,6 +755,7 @@ export function DashboardClient() {
         sv: null,
         telefono: null,
         zona: null,
+        msj_en_fra: null,
       };
 
       if (cliente) {

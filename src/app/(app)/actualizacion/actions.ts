@@ -55,7 +55,7 @@ export async function listModulacionesByDate(params: { date: string }) {
 
   // Obtener puntuaciones (RMD) y msj_en_fra para estos clientes
   const items = resultData ?? [];
-  const numeros = Array.from(new Set(items.map(r => r.cliente_numero)));
+  const numeros = Array.from(new Set(items.map((r: any) => r.cliente_numero)));
   const scores: Record<string, number> = {};
   const msjEnFra: Record<string, string | null> = {};
   
@@ -87,7 +87,7 @@ export async function listModulacionesByDate(params: { date: string }) {
     }
   }
 
-  return items.map(r => ({
+  return items.map((r: any) => ({
     ...r,
     puntuacion: scores[r.cliente_numero] ?? null,
     msj_en_fra: msjEnFra[r.cliente_numero] ?? null
@@ -147,7 +147,7 @@ export async function listModulacionesByClienteNumero(params: { clienteNumero: s
     msjEnFra = clienteData.msj_en_fra;
   }
 
-  return (resultData ?? []).map(r => ({
+  return (resultData ?? []).map((r: any) => ({
     ...r,
     msj_en_fra: msjEnFra
   })) as Array<Record<string, unknown>>;
