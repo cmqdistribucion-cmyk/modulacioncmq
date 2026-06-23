@@ -74,16 +74,21 @@ export async function listModulacionesByDate(params: { date: string }) {
       });
     }
 
-    // Obtener msj_en_fra de clientes
-    const { data: clienteData } = await supabase
-      .from("clientes")
-      .select("numero_cliente,msj_en_fra")
-      .in("numero_cliente", numeros);
-    
-    if (clienteData) {
-      clienteData.forEach(c => {
-        msjEnFra[c.numero_cliente] = c.msj_en_fra;
-      });
+    // Obtener msj_en_fra de clientes (con fallback)
+    try {
+      const { data: clienteData } = await supabase
+        .from("clientes")
+        .select("numero_cliente,msj_en_fra")
+        .in("numero_cliente", numeros);
+      
+      if (clienteData) {
+        clienteData.forEach(c => {
+          msjEnFra[c.numero_cliente] = c.msj_en_fra;
+        });
+      }
+    } catch (e) {
+      // Si falla porque msj_en_fra no existe, dejamos msjEnFra como null para todos
+      console.log("msj_en_fra no existe en la base de datos aún");
     }
   }
 
@@ -135,16 +140,21 @@ export async function listModulacionesByClienteNumero(params: { clienteNumero: s
     >;
   }
 
-  // Obtener msj_en_fra para este cliente
+  // Obtener msj_en_fra para este cliente (con fallback)
   let msjEnFra: string | null = null;
-  const { data: clienteData } = await supabase
-    .from("clientes")
-    .select("msj_en_fra")
-    .eq("numero_cliente", numero)
-    .single();
-  
-  if (clienteData) {
-    msjEnFra = clienteData.msj_en_fra;
+  try {
+    const { data: clienteData } = await supabase
+      .from("clientes")
+      .select("msj_en_fra")
+      .eq("numero_cliente", numero)
+      .single();
+    
+    if (clienteData) {
+      msjEnFra = clienteData.msj_en_fra;
+    }
+  } catch (e) {
+    // Si falla porque msj_en_fra no existe, dejamos msjEnFra como null
+    console.log("msj_en_fra no existe en la base de datos aún");
   }
 
   return (resultData ?? []).map((r: any) => ({

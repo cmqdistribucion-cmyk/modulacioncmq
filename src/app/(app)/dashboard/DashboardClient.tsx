@@ -414,7 +414,11 @@ export function DashboardClient() {
         setSubmitError(null);
         setWhatsappText("");
 
-        const { data, error } = await supabase
+        // Primero intentamos con msj_en_fra
+        let data: any[] | null = null;
+        let error: any = null;
+        
+        const { data: dataWithMsj, error: errorWithMsj } = await supabase
           .from("clientes")
           .select(
             "id,title,numero_cliente,nombre,domicilio,vendedor,sv,telefono,zona,msj_en_fra",
@@ -423,6 +427,32 @@ export function DashboardClient() {
           .order("nombre", { ascending: true })
           .limit(12)
           .abortSignal(controller.signal);
+        
+        if (errorWithMsj && errorWithMsj.message && (
+          errorWithMsj.message.includes("msj_en_fra") || 
+          errorWithMsj.message.includes("does not exist")
+        )) {
+          // Si falla por msj_en_fra, volvemos a intentar sin la columna
+          const { data: dataWithoutMsj, error: errorWithoutMsj } = await supabase
+            .from("clientes")
+            .select(
+              "id,title,numero_cliente,nombre,domicilio,vendedor,sv,telefono,zona",
+            )
+            .or(`numero_cliente.ilike.%${q}%,nombre.ilike.%${q}%`)
+            .order("nombre", { ascending: true })
+            .limit(12)
+            .abortSignal(controller.signal);
+          
+          if (errorWithoutMsj) {
+            error = errorWithoutMsj;
+          } else {
+            // Agregamos msj_en_fra: null a cada resultado
+            data = (dataWithoutMsj ?? []).map(item => ({ ...item, msj_en_fra: null }));
+          }
+        } else {
+          data = dataWithMsj;
+          error = errorWithMsj;
+        }
 
         if (cancelled) return;
 
