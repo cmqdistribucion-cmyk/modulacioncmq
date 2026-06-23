@@ -17,10 +17,15 @@ export default async function AuthLayout({ children }: { children: React.ReactNo
   }
 
   return (
-    <div className="flex min-h-full flex-1 items-center justify-center px-6 py-10">
+    <div 
+      className="flex min-h-full flex-1 items-center justify-center px-6 py-10"
+      style={{
+        background: 'linear-gradient(135deg, #e63946 0%, #1d3557 100%)',
+      }}
+    >
       <div className="w-full max-w-md">
         <div className="mb-6 flex items-center justify-between">
-          <div className="text-lg font-semibold">{appName || "techPro Modulaciones"}</div>
+          <div className="text-lg font-semibold text-white">{appName || "techPro Modulaciones"}</div>
           <ThemeToggle />
         </div>
         <div className="rounded-xl border border-border bg-card p-6 shadow-sm">

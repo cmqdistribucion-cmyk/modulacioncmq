@@ -60,6 +60,7 @@ function detectField(header: string) {
   if (key === "sv") return "sv";
   if (key === "telefono" || key === "tel" || key === "celular") return "telefono";
   if (key === "zona") return "zona";
+  if (key === "msjenfra" || key === "mensajeenfactura" || key === "mensajefactura" || key === "msjenfactura") return "msj_en_fra";
 
   return null;
 }
@@ -101,6 +102,7 @@ function buildRows(rawRows: Record<string, unknown>[], mapping: Mapping) {
         "sv",
         "telefono",
         "zona",
+        "msj_en_fra",
       ] as const;
 
       for (const key of optionalFields) {
@@ -410,6 +412,14 @@ function ImportControls(props: {
                 props.onChangeMapping({ ...props.mapping, title: v || undefined })
               }
             />
+            <MappingSelect
+              label="MSJ en FRA"
+              value={props.mapping.msj_en_fra ?? ""}
+              headers={props.headers}
+              onChange={(v) =>
+                props.onChangeMapping({ ...props.mapping, msj_en_fra: v || undefined })
+              }
+            />
           </div>
 
           {requiredMissing ? (
@@ -434,6 +444,7 @@ function ImportControls(props: {
                   <th className="px-3 py-2">Nombre</th>
                   <th className="px-3 py-2">Domicilio</th>
                   <th className="px-3 py-2">Zona</th>
+                  <th className="px-3 py-2">MSJ en FRA</th>
                 </tr>
               </thead>
               <tbody>
@@ -443,6 +454,7 @@ function ImportControls(props: {
                     <td className="px-3 py-2">{r.nombre ?? "—"}</td>
                     <td className="px-3 py-2">{r.domicilio ?? "—"}</td>
                     <td className="px-3 py-2">{r.zona ?? "—"}</td>
+                    <td className="px-3 py-2">{r.msj_en_fra ?? "—"}</td>
                   </tr>
                 ))}
               </tbody>

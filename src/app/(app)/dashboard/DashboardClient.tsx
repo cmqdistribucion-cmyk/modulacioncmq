@@ -52,6 +52,7 @@ function formatWhatsappText(params: {
     params.cliente.zona ? `Zona: ${params.cliente.zona}` : null,
     params.cliente.vendedor ? `Vendedor: ${params.cliente.vendedor}` : null,
     params.cliente.sv ? `SV: ${params.cliente.sv}` : null,
+    params.cliente.msj_en_fra ? `MSJ en FRA: *${params.cliente.msj_en_fra}*` : null,
     ``,
     `Motivo: *${params.input.motivo}*`,
     `Chofer: *${params.input.chofer}*`,
@@ -416,7 +417,7 @@ export function DashboardClient() {
         const { data, error } = await supabase
           .from("clientes")
           .select(
-            "id,title,numero_cliente,nombre,domicilio,vendedor,sv,telefono,zona",
+            "id,title,numero_cliente,nombre,domicilio,vendedor,sv,telefono,zona,msj_en_fra",
           )
           .or(`numero_cliente.ilike.%${q}%,nombre.ilike.%${q}%`)
           .order("nombre", { ascending: true })
@@ -971,6 +972,11 @@ export function DashboardClient() {
                     <div className="truncate text-xs text-muted-foreground">
                       {c.domicilio ?? "—"}
                     </div>
+                    {c.msj_en_fra ? (
+                      <div className="truncate text-xs font-bold text-red-600 dark:text-red-400">
+                        MSJ en FRA: {c.msj_en_fra}
+                      </div>
+                    ) : null}
                     {scores.length ? (
                       <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                         <span className="font-medium text-card-foreground">
@@ -1114,6 +1120,9 @@ export function DashboardClient() {
                 <div>Zona: {selected.zona ?? "—"}</div>
                 <div>Vendedor: {selected.vendedor ?? "—"}</div>
                 <div>SV: {selected.sv ?? "—"}</div>
+                {selected.msj_en_fra ? (
+                  <div className="font-bold text-red-600 dark:text-red-400">MSJ en FRA: {selected.msj_en_fra}</div>
+                ) : null}
                 <div className="flex items-center gap-2">
                   Puntuación:{" "}
                   {lastScore ? (
@@ -1214,6 +1223,7 @@ export function DashboardClient() {
                       }));
                     }}
                     type="number"
+                    step="0.01"
                     min={0}
                     className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
                   />

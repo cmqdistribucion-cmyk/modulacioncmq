@@ -8,6 +8,7 @@ export type Cliente = {
   sv: string | null;
   telefono: string | null;
   zona: string | null;
+  msj_en_fra: string | null;
 };
 
 export type ModulacionInput = {

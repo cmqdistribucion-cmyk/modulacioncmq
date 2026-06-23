@@ -53,10 +53,11 @@ export async function listModulacionesByDate(params: { date: string }) {
     }
   }
 
-  // Obtener puntuaciones (RMD) para estos clientes
+  // Obtener puntuaciones (RMD) y msj_en_fra para estos clientes
   const items = resultData ?? [];
   const numeros = Array.from(new Set(items.map(r => r.cliente_numero)));
   const scores: Record<string, number> = {};
+  const msjEnFra: Record<string, string | null> = {};
   
   if (numeros.length > 0) {
     const { data: scoreData } = await supabase
@@ -72,11 +73,24 @@ export async function listModulacionesByDate(params: { date: string }) {
         }
       });
     }
+
+    // Obtener msj_en_fra de clientes
+    const { data: clienteData } = await supabase
+      .from("clientes")
+      .select("numero_cliente,msj_en_fra")
+      .in("numero_cliente", numeros);
+    
+    if (clienteData) {
+      clienteData.forEach(c => {
+        msjEnFra[c.numero_cliente] = c.msj_en_fra;
+      });
+    }
   }
 
   return items.map(r => ({
     ...r,
-    puntuacion: scores[r.cliente_numero] ?? null
+    puntuacion: scores[r.cliente_numero] ?? null,
+    msj_en_fra: msjEnFra[r.cliente_numero] ?? null
   })) as Array<Record<string, unknown>>;
 }
 
@@ -98,26 +112,45 @@ export async function listModulacionesByClienteNumero(params: { clienteNumero: s
     .order("created_at", { ascending: false })
     .limit(50);
 
-  if (!error) return (data ?? []) as Array<Record<string, unknown>>;
+  let resultData = data;
 
-  const msg = error.message.toLowerCase();
-  const missingColumn =
-    msg.includes("actualizacion") ||
-    msg.includes("could not find the") ||
-    msg.includes("does not exist");
-  if (!missingColumn) throw new Error(error.message);
+  if (error) {
+    const msg = error.message.toLowerCase();
+    const missingColumn =
+      msg.includes("actualizacion") ||
+      msg.includes("could not find the") ||
+      msg.includes("does not exist");
+    if (!missingColumn) throw new Error(error.message);
 
-  const { data: legacy, error: legacyErr } = await supabase
-    .from("modulaciones")
-    .select("id,created_at,cliente_numero,cliente_nombre,motivo,chofer,bultos,comentario")
-    .eq("cliente_numero", numero)
-    .order("created_at", { ascending: false })
-    .limit(50);
-  if (legacyErr) throw new Error(legacyErr.message);
+    const { data: legacy, error: legacyErr } = await supabase
+      .from("modulaciones")
+      .select("id,created_at,cliente_numero,cliente_nombre,motivo,chofer,bultos,comentario")
+      .eq("cliente_numero", numero)
+      .order("created_at", { ascending: false })
+      .limit(50);
+    if (legacyErr) throw new Error(legacyErr.message);
 
-  return (legacy ?? []).map((r) => ({ ...r, actualizacion: null })) as Array<
-    Record<string, unknown>
-  >;
+    resultData = (legacy ?? []).map((r) => ({ ...r, actualizacion: null })) as Array<
+      Record<string, unknown>
+    >;
+  }
+
+  // Obtener msj_en_fra para este cliente
+  let msjEnFra: string | null = null;
+  const { data: clienteData } = await supabase
+    .from("clientes")
+    .select("msj_en_fra")
+    .eq("numero_cliente", numero)
+    .single();
+  
+  if (clienteData) {
+    msjEnFra = clienteData.msj_en_fra;
+  }
+
+  return (resultData ?? []).map(r => ({
+    ...r,
+    msj_en_fra: msjEnFra
+  })) as Array<Record<string, unknown>>;
 }
 
 export async function updateModulacionActualizacion(params: {

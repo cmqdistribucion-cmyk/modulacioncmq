@@ -32,9 +32,14 @@ export default async function AppLayout({
     // ignore
   }
   return (
-    <div className="flex min-h-full flex-1 flex-col">
+    <div 
+      className="flex min-h-full flex-1 flex-col"
+      style={{
+        background: 'linear-gradient(135deg, #e63946 0%, #1d3557 100%)',
+      }}
+    >
       <AuthInactivityHandler />
-      <header className="border-b border-blue-700 bg-blue-600 text-white">
+      <header className="border-b border-red-700 bg-red-600/90 text-white backdrop-blur-sm">
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-3 px-6 py-4">
           <div className="min-w-0">
             <div className="truncate text-base font-semibold">
@@ -81,13 +86,7 @@ export default async function AppLayout({
                   href="/usuarios"
                   className="inline-flex items-center justify-center rounded-md border border-white/20 bg-white/10 px-3 py-2 text-sm text-white shadow-sm hover:bg-white/15"
                 >
-                  Usuarios y claves
-                </Link>
-                <Link
-                  href="/diagnostico"
-                  className="inline-flex items-center justify-center rounded-md border border-white/20 bg-white/10 px-3 py-2 text-sm text-white shadow-sm hover:bg-white/15"
-                >
-                  Diagnóstico
+                  Usuarios
                 </Link>
               </>
             ) : null}
