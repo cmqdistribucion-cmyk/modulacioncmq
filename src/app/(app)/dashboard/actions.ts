@@ -195,6 +195,7 @@ export async function analyzeScreenshotWithOpenRouter(params: {
   choferes: string[];
 }) {
   const apiKey = process.env.OPENROUTER_API_KEY;
+  const model = process.env.OPENROUTER_MODEL || "google/gemini-1.5-flash";
   if (!apiKey) throw new Error("Falta OPENROUTER_API_KEY en el servidor");
 
   const prompt = `Analiza esta captura de pantalla de una entrega/rechazo de logística y extrae los siguientes campos en formato JSON:
@@ -218,7 +219,7 @@ Responde ÚNICAMENTE el objeto JSON, sin texto adicional.`;
       "X-Title": "TechPro Modulaciones", // Opcional
     },
     body: JSON.stringify({
-      model: "google/gemini-1.5-flash", // Modelo rápido y económico con visión
+      model, // Usar el modelo configurado en variables de entorno
       messages: [
         {
           role: "user",
