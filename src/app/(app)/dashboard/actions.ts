@@ -195,31 +195,30 @@ export async function analyzeScreenshotWithOpenRouter(params: {
   choferes: string[];
 }) {
   const apiKey = process.env.OPENROUTER_API_KEY;
-  const model = process.env.OPENROUTER_MODEL || "google/gemini-1.5-flash";
+  const model = process.env.OPENROUTER_MODEL || "openai/gpt-4o-mini"; // Modelo más económico por defecto
   if (!apiKey) throw new Error("Falta OPENROUTER_API_KEY en el servidor");
 
-  const prompt = `Analiza esta captura de pantalla de una entrega/rechazo de logística y extrae los siguientes campos en formato JSON:
-- numero_cliente: El código numérico del cliente (ej: 100234).
-- cliente_nombre: El nombre del comercio o propietario.
-- motivo: El motivo del rechazo o estado (ej: "Cerrado", "No hay nadie"). Elige el que mejor coincida de esta lista: ${params.motivos.join(", ")}.
-- chofer: El nombre del conductor/chofer (ej: "Perez Lucas"). Elige el que mejor coincida de esta lista: ${params.choferes.join(", ")}. Ignora los números de legajo si aparecen.
-- bultos: Cantidad de bultos (número).
-- hl: Cantidad de hectolitros (número decimal, ej: 0.27). Busca el texto que diga "hl" o "hectolitros".
-- comentario: Cualquier observación adicional, texto de rechazo o nota que aparezca (ej: "Visita: Cerrado", "Local no abrió"). Extrae el texto completo que explique el motivo.
-- sv: El nombre del supervisor (asignado a) si aparece.
-
-Responde ÚNICAMENTE el objeto JSON, sin texto adicional.`;
+  // Prompt más corto para reducir tokens
+  const prompt = `Extrae JSON (solo JSON):
+- numero_cliente: código (número)
+- cliente_nombre: nombre del comercio
+- motivo: [${params.motivos.join(", ")}]
+- chofer: [${params.choferes.join(", ")}] (ignorar legajos)
+- bultos: número
+- hl: decimal (buscar "hl")
+- comentario: texto del motivo
+- sv: supervisor si aparece`;
 
   const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
-      "HTTP-Referer": "https://techpro-modulaciones.vercel.app", // Opcional
-      "X-Title": "TechPro Modulaciones", // Opcional
+      "HTTP-Referer": "https://techpro-modulaciones.vercel.app",
+      "X-Title": "TechPro Modulaciones",
     },
     body: JSON.stringify({
-      model, // Usar el modelo configurado en variables de entorno
+      model,
       messages: [
         {
           role: "user",
@@ -229,6 +228,7 @@ Responde ÚNICAMENTE el objeto JSON, sin texto adicional.`;
               type: "image_url",
               image_url: {
                 url: `data:image/jpeg;base64,${params.imageBase64}`,
+                detail: "low" // Detalle bajo para reducir tokens de imagen
               },
             },
           ],
@@ -246,7 +246,6 @@ Responde ÚNICAMENTE el objeto JSON, sin texto adicional.`;
   const content = data.choices?.[0]?.message?.content || "";
   
   try {
-    // Limpiar posibles bloques de código markdown
     const jsonStr = content.replace(/```json|```/g, "").trim();
     return JSON.parse(jsonStr);
   } catch {
