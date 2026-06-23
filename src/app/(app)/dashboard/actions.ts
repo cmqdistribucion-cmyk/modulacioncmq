@@ -218,7 +218,7 @@ Responde ÚNICAMENTE el objeto JSON, sin texto adicional.`;
       "X-Title": "TechPro Modulaciones", // Opcional
     },
     body: JSON.stringify({
-      model: "google/gemini-2.0-flash-001", // Modelo rápido y económico con visión
+      model: "google/gemini-1.5-flash", // Modelo rápido y económico con visión
       messages: [
         {
           role: "user",
