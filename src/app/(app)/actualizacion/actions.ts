@@ -12,9 +12,9 @@ export async function listModulacionesByDate(params: { date: string }) {
   if (userError) throw new Error(userError.message);
   if (!userData.user) throw new Error("No autenticado");
 
-  // Rango de fechas para el día seleccionado
-  const startDate = `${params.date}T00:00:00.000Z`;
-  const endDate = `${params.date}T23:59:59.999Z`;
+  // Rango de fechas más flexible para el día seleccionado
+  const startDate = `${params.date}T00:00:00`;
+  const endDate = `${params.date}T23:59:59`;
 
   const fullSelect = "id,created_at,updated_at,cliente_numero,cliente_nombre,motivo,chofer,bultos,hl,actualizacion,created_by_email";
   const { data, error } = await supabase

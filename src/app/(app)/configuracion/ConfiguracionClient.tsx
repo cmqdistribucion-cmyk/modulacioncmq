@@ -9,6 +9,11 @@ import {
   adminUpsertWhatsappGroup,
   type WhatsappGroupRow,
 } from "../admin/actions";
+import {
+  getAutoStatusConfig,
+  saveAutoStatusConfig,
+  runAutoStatusUpdate,
+} from "./autoStatusActions";
 
 export function ConfiguracionClient() {
   return (
@@ -18,9 +23,157 @@ export function ConfiguracionClient() {
         <div className="text-sm text-muted-foreground">
           Gestión de grupos de WhatsApp y otros ajustes generales.
         </div>
-        <div className="mt-6">
+        <div className="mt-6 grid grid-cols-1 gap-6">
+          <AutoStatusCard />
           <WhatsappGroupsCard />
         </div>
+      </div>
+    </div>
+  );
+}
+
+function AutoStatusCard() {
+  const [status, setStatus] = useState<
+    | { type: "idle" }
+    | { type: "loading" }
+    | { type: "error"; message: string }
+    | { type: "done" }
+  >({ type: "idle" });
+  const [enabled, setEnabled] = useState(false);
+  const [hour, setHour] = useState(21);
+  const [toast, setToast] = useState<string | null>(null);
+
+  function notify(message: string) {
+    setToast(message);
+    window.setTimeout(() => setToast(null), 2500);
+  }
+
+  const refresh = useCallback(async () => {
+    setStatus({ type: "loading" });
+    try {
+      const config = await getAutoStatusConfig();
+      setEnabled(config.enabled);
+      setHour(config.hour);
+      setStatus({ type: "done" });
+    } catch (e) {
+      setStatus({
+        type: "error",
+        message: e instanceof Error ? e.message : "Error al cargar configuración",
+      });
+    }
+  }, []);
+
+  async function save() {
+    setStatus({ type: "loading" });
+    try {
+      await saveAutoStatusConfig({ enabled, hour });
+      notify("Configuración guardada");
+      setStatus({ type: "done" });
+    } catch (e) {
+      setStatus({
+        type: "error",
+        message: e instanceof Error ? e.message : "Error al guardar",
+      });
+    }
+  }
+
+  async function runNow() {
+    setStatus({ type: "loading" });
+    try {
+      const result = await runAutoStatusUpdate();
+      notify(result.message);
+      setStatus({ type: "done" });
+    } catch (e) {
+      setStatus({
+        type: "error",
+        message: e instanceof Error ? e.message : "Error al ejecutar",
+      });
+    }
+  }
+
+  useEffect(() => {
+    const id = window.setTimeout(() => {
+      void refresh();
+    }, 0);
+    return () => window.clearTimeout(id);
+  }, [refresh]);
+
+  return (
+    <div className="rounded-lg border border-border bg-background p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <div className="text-sm font-semibold">Cambio automático de estado</div>
+          <div className="mt-1 text-sm text-muted-foreground">
+            Cambia todas las modulaciones pendientes a "Entregado" a la hora configurada.
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => void refresh()}
+          className="inline-flex items-center justify-center rounded-md border border-border bg-card px-3 py-2 text-sm hover:bg-muted disabled:opacity-60"
+          disabled={status.type === "loading"}
+        >
+          {status.type === "loading" ? "Cargando..." : "Actualizar"}
+        </button>
+      </div>
+
+      {toast ? (
+        <div className="mt-3 rounded-md border border-border bg-muted px-3 py-2 text-sm text-muted-foreground">
+          {toast}
+        </div>
+      ) : null}
+
+      {status.type === "error" ? (
+        <div className="mt-3 rounded-md border border-border bg-muted px-3 py-2 text-sm text-muted-foreground">
+          {status.message}
+        </div>
+      ) : null}
+
+      <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
+        <label className="inline-flex items-center justify-between gap-3 rounded-md border border-border bg-card px-3 py-2 text-sm">
+          <span>Activar cambio automático</span>
+          <input
+            type="checkbox"
+            checked={enabled}
+            onChange={(e) => setEnabled(e.target.checked)}
+          />
+        </label>
+        <div>
+          <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">
+            Hora
+          </label>
+          <input
+            type="number"
+            min="0"
+            max="23"
+            value={hour}
+            onChange={(e) => setHour(parseInt(e.target.value, 10) || 21)}
+            className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+          />
+        </div>
+        <div className="md:col-span-1 flex flex-col gap-2">
+          <button
+            type="button"
+            onClick={() => void save()}
+            disabled={status.type === "loading"}
+            className="inline-flex w-full items-center justify-center rounded-md bg-foreground px-3 py-2 text-sm font-medium text-background hover:opacity-95 disabled:opacity-60"
+          >
+            Guardar configuración
+          </button>
+          <button
+            type="button"
+            onClick={() => void runNow()}
+            disabled={status.type === "loading"}
+            className="inline-flex w-full items-center justify-center rounded-md border border-border bg-card px-3 py-2 text-sm hover:bg-muted disabled:opacity-60"
+          >
+            Ejecutar ahora
+          </button>
+        </div>
+      </div>
+
+      <div className="mt-4 rounded-md border border-border bg-muted px-3 py-2 text-xs text-muted-foreground">
+        <strong>Configuración automática:</strong><br />
+        Para que funcione todos los días, configura un servicio como <a href="https://cron-job.org" target="_blank" rel="noopener noreferrer" className="underline">cron-job.org</a> para llamar a la URL <code>{`${typeof window !== 'undefined' ? window.location.origin : ''}/api/auto-status`}</code> cada hora. El sistema verificará si es la hora configurada y ejecutará el cambio solo entonces.
       </div>
     </div>
   );
