@@ -173,7 +173,7 @@ function AutoStatusCard() {
 
       <div className="mt-4 rounded-md border border-border bg-muted px-3 py-2 text-xs text-muted-foreground">
         <strong>Configuración automática:</strong><br />
-        Para que funcione todos los días, configura un servicio como <a href="https://cron-job.org" target="_blank" rel="noopener noreferrer" className="underline">cron-job.org</a> para llamar a la URL <code>{`${typeof window !== 'undefined' ? window.location.origin : ''}/api/auto-status`}</code> cada hora. El sistema verificará si es la hora configurada y ejecutará el cambio solo entonces.
+        El cambio de estado se ejecuta automáticamente cada hora en Vercel y se activa solo cuando es la hora configurada (por defecto 21:00). No necesitas configurar servicios adicionales!
       </div>
     </div>
   );
