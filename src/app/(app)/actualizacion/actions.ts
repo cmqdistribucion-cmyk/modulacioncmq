@@ -24,7 +24,7 @@ export async function listModulacionesByDate(params: { date: string }) {
     .lte("created_at", endDate)
     .order("created_at", { ascending: false });
 
-  let resultData = data;
+  let resultData: any = data;
 
   if (error) {
     const msg = error.message.toLowerCase();
@@ -112,7 +112,7 @@ export async function listModulacionesByClienteNumero(params: { clienteNumero: s
     .order("created_at", { ascending: false })
     .limit(50);
 
-  let resultData = data;
+  let resultData: any = data;
 
   if (error) {
     const msg = error.message.toLowerCase();
