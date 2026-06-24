@@ -40,16 +40,10 @@ export async function runAutoStatusUpdate() {
   const supabase = await createSupabaseServerClient();
   if (!supabase) throw new Error("Supabase no configurado");
 
-  // Actualizar todas las modulaciones pendientes del día a "entregado"
-  const today = new Date().toISOString().split("T")[0];
-  const startDate = `${today}T00:00:00`;
-  const endDate = `${today}T23:59:59`;
-
+  // Actualizar TODAS las modulaciones pendientes a "entregado"
   const { data: modulaciones, error: selectError } = await supabase
     .from("modulaciones")
-    .select("id, created_at")
-    .gte("created_at", startDate)
-    .lte("created_at", endDate)
+    .select("id")
     .or("actualizacion.eq.pendiente,actualizacion.is.null");
 
   if (selectError) throw new Error(selectError.message);

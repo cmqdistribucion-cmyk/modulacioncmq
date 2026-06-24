@@ -173,7 +173,7 @@ function AutoStatusCard() {
 
       <div className="mt-4 rounded-md border border-border bg-muted px-3 py-2 text-xs text-muted-foreground">
         <strong>Configuración:</strong><br/>
-        Haz clic en "Ejecutar ahora" para cambiar manualmente todas las modulaciones pendientes de hoy a "Entregado".
+        Haz clic en "Ejecutar ahora" para cambiar manualmente TODAS las modulaciones pendientes a "Entregado".
       </div>
     </div>
   );
