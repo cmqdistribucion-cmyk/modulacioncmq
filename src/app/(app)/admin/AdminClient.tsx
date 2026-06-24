@@ -186,7 +186,10 @@ export function AdminClient() {
             </div>
 
             <DeleteModulacionesCard />
-            <ImportPuntuaciones onImported={() => notify("Puntuaciones cargadas")} />
+
+            <div className="rounded-lg border border-border bg-background p-4 md:col-span-2">
+              <ImportPuntuaciones onImported={() => notify("Puntuaciones cargadas")} />
+            </div>
           </div>
         ) : null}
 
@@ -585,7 +588,7 @@ function ImportPuntuaciones({ onImported }: { onImported: () => void }) {
   }
 
   return (
-    <div className="rounded-lg border border-border bg-background p-4 md:col-span-2">
+    <>
       <div className="text-sm font-semibold">Importar puntuaciones (últimas 3)</div>
       <div className="mt-1 text-sm text-muted-foreground">
         Excel/CSV con columnas: Nº de cliente, Nombre del cliente, Puntuación (0-5), Fecha.
@@ -626,6 +629,6 @@ function ImportPuntuaciones({ onImported }: { onImported: () => void }) {
           Importación finalizada.
         </div>
       ) : null}
-    </div>
+    </>
   );
 }
