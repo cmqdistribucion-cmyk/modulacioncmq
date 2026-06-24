@@ -185,7 +185,9 @@ export function AdminClient() {
               </div>
             </div>
 
-            <DeleteModulacionesCard />
+            <div className="rounded-lg border border-border bg-background p-4">
+              <DeleteModulacionesCard />
+            </div>
 
             <div className="rounded-lg border border-border bg-background p-4 md:col-span-2">
               <ImportPuntuaciones onImported={() => notify("Puntuaciones cargadas")} />
@@ -426,7 +428,7 @@ function DeleteModulacionesCard() {
   }
 
   return (
-    <div className="rounded-lg border border-border bg-background p-4">
+    <>
       <div className="text-sm font-semibold text-red-600 dark:text-red-400">Limpiar modulaciones</div>
       <div className="mt-1 text-xs text-muted-foreground">
         Elimina permanentemente las modulaciones de un mes específico.
@@ -467,7 +469,7 @@ function DeleteModulacionesCard() {
           {status.message}
         </div>
       )}
-    </div>
+    </>
   );
 }
 
