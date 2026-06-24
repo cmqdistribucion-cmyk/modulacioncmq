@@ -183,13 +183,14 @@ export function AdminClient() {
               <div className="mt-2">
                 <ExportModulaciones />
               </div>
-              <div className="mt-6 pt-6 border-t border-border">
-                <div className="text-sm font-semibold text-red-600 dark:text-red-400">Limpiar modulaciones</div>
-                <div className="mt-1 text-xs text-muted-foreground mb-3">
-                  Elimina permanentemente las modulaciones de un mes específico.
-                </div>
-                <DeleteModulacionesCard />
+            </div>
+
+            <div className="rounded-lg border border-border bg-background p-4">
+              <div className="text-sm font-semibold text-red-600 dark:text-red-400">Limpiar modulaciones</div>
+              <div className="mt-1 text-xs text-muted-foreground mb-3">
+                Elimina permanentemente las modulaciones de un mes específico.
               </div>
+              <DeleteModulacionesCard />
             </div>
 
             <div className="rounded-lg border border-border bg-background p-4 md:col-span-2">
