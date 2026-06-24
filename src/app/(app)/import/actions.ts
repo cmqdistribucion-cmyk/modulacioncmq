@@ -18,7 +18,6 @@ export type ClienteUpsert = {
 export async function upsertClientes(params: { rows: ClienteUpsert[] }) {
   const supabase = await createSupabaseServerClient();
   if (!supabase) throw new Error("Supabase no configurado");
-  await requireAdmin();
 
   const { data: userData, error: userError } = await supabase.auth.getUser();
   if (userError) throw new Error(userError.message);
