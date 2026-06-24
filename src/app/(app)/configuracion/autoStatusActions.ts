@@ -40,12 +40,6 @@ export async function runAutoStatusUpdate() {
   const supabase = await createSupabaseServerClient();
   if (!supabase) throw new Error("Supabase no configurado");
 
-  // Verificar si la funcionalidad está activada
-  const config = await getAutoStatusConfig();
-  if (!config.enabled) {
-    return { success: true, updated: 0, message: "Funcionalidad desactivada" };
-  }
-
   // Actualizar todas las modulaciones pendientes del día a "entregado"
   const today = new Date().toISOString().split("T")[0];
   const startDate = `${today}T00:00:00`;

@@ -172,8 +172,8 @@ function AutoStatusCard() {
       </div>
 
       <div className="mt-4 rounded-md border border-border bg-muted px-3 py-2 text-xs text-muted-foreground">
-        <strong>Configuración automática:</strong><br />
-        El cambio de estado se ejecuta automáticamente cada hora en Vercel y se activa solo cuando es la hora configurada (por defecto 21:00). No necesitas configurar servicios adicionales!
+        <strong>Configuración:</strong><br/>
+        Haz clic en "Ejecutar ahora" para cambiar manualmente todas las modulaciones pendientes de hoy a "Entregado".
       </div>
     </div>
   );
