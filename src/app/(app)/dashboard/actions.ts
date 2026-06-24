@@ -198,16 +198,18 @@ export async function analyzeScreenshotWithOpenRouter(params: {
   const model = process.env.OPENROUTER_MODEL || "openai/gpt-4o-mini"; // Modelo más económico por defecto
   if (!apiKey) throw new Error("Falta OPENROUTER_API_KEY en el servidor");
 
-  // PROMPT MUY CORTO PARA AHORRAR TOKENS
+  // Prompt claro pero conciso para reducir tokens
   const prompt = `JSON:
-nc:num_cliente
-cn:nombre_comercio
-m:motivo[${params.motivos.join(",")}]
-c:chofer[${params.choferes.join(",")}]
-b:bultos
-hl:hl
-com:comentario
-sv:supervisor`;
+{
+  "numero_cliente": "número de cliente",
+  "cliente_nombre": "nombre del comercio",
+  "motivo": "motivo de la lista: [${params.motivos.join(", ")}]",
+  "chofer": "chofer de la lista: [${params.choferes.join(", ")}]",
+  "bultos": "número de bultos",
+  "hl": "hl (decimal)",
+  "comentario": "comentario",
+  "sv": "supervisor"
+}`;
 
   const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",

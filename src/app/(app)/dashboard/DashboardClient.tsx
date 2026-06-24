@@ -702,7 +702,7 @@ export function DashboardClient() {
       console.log(extracted);
       console.log("--- AI EXTRACTION END ---");
 
-      const found = extracted.nc?.toString() || extracted.numero_cliente?.toString();
+      const found = extracted.numero_cliente?.toString();
       if (!found) {
         setOcrStatus({
           type: "error",
@@ -713,18 +713,18 @@ export function DashboardClient() {
       }
 
       // 3. ACTUALIZAR INPUT INMEDIATAMENTE CON VALORES EXTRAÍDOS
-      const aiChofer = (extracted.c || extracted.chofer)?.toString() || "";
+      const aiChofer = extracted.chofer?.toString() || "";
       const matchedChofer = aiChofer ? (bestMatchFromList(aiChofer, choferes) || aiChofer) : "";
 
-      const aiMotivo = (extracted.m || extracted.motivo)?.toString() || "";
+      const aiMotivo = extracted.motivo?.toString() || "";
       const matchedMotivo = aiMotivo ? (bestMatchFromList(aiMotivo, motivos) || aiMotivo) : input.motivo;
 
       const nextInput: ModulacionInput = {
         motivo: matchedMotivo,
         chofer: matchedChofer,
-        bultos: typeof (extracted.b || extracted.bultos) === "number" ? (extracted.b || extracted.bultos) : (parseInt(extracted.b || extracted.bultos) || input.bultos),
-        hl: typeof (extracted.hl || extracted.hl) === "number" ? (extracted.hl || extracted.hl) : (parseFloat(extracted.hl || extracted.hl) || 0),
-        comentario: (extracted.com || extracted.comentario)?.toString() || "",
+        bultos: typeof extracted.bultos === "number" ? extracted.bultos : (parseInt(extracted.bultos) || input.bultos),
+        hl: typeof extracted.hl === "number" ? extracted.hl : (parseFloat(extracted.hl) || 0),
+        comentario: extracted.comentario?.toString() || "",
       };
       
       console.log("Valores extraídos analizados por IA:", extracted);
@@ -767,7 +767,7 @@ export function DashboardClient() {
               setOcrStatus({ type: "idle" });
               setNewCliente({
                 numero_cliente: found,
-                nombre: extracted.cn || extracted.cliente_nombre || "",
+                nombre: extracted.cliente_nombre || "",
                 sv: extracted.sv || "",
                 vendedor: "",
               });
