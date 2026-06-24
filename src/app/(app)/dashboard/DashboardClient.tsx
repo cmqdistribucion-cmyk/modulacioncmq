@@ -716,12 +716,15 @@ export function DashboardClient() {
       const aiChofer = extracted.chofer?.toString() || "";
       const matchedChofer = aiChofer ? (bestMatchFromList(aiChofer, choferes) || aiChofer) : "";
 
+      const aiMotivo = extracted.motivo?.toString() || "";
+      const matchedMotivo = aiMotivo ? (bestMatchFromList(aiMotivo, motivos) || aiMotivo) : input.motivo;
+
       const nextInput: ModulacionInput = {
-        motivo: extracted.motivo ?? input.motivo,
+        motivo: matchedMotivo,
         chofer: matchedChofer,
         bultos: typeof extracted.bultos === "number" ? extracted.bultos : (parseInt(extracted.bultos) || input.bultos),
         hl: typeof extracted.hl === "number" ? extracted.hl : (parseFloat(extracted.hl) || 0),
-        comentario: extracted.comentario || "",
+        comentario: extracted.comentario?.toString() || "",
       };
       
       console.log("Valores extraídos analizados por IA:", extracted);
