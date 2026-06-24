@@ -195,19 +195,21 @@ export async function analyzeScreenshotWithOpenRouter(params: {
   choferes: string[];
 }) {
   const apiKey = process.env.OPENROUTER_API_KEY;
-  const model = process.env.OPENROUTER_MODEL || "openai/gpt-4o-mini"; // Modelo más económico por defecto
+  const model = process.env.OPENROUTER_MODEL || "meta/llama-3.2-11b-vision-instruct"; // Modelo MUCHO más barato
   if (!apiKey) throw new Error("Falta OPENROUTER_API_KEY en el servidor");
 
-  // Prompt original funcional para extraer datos
-  const prompt = `Extrae solo JSON con estos campos (nada más):
-- numero_cliente: número de cliente (solo dígitos)
-- cliente_nombre: nombre del comercio
-- motivo: uno de la lista: [${params.motivos.join(", ")}]
-- chofer: uno de la lista: [${params.choferes.join(", ")}] (ignorar números/legajos)
-- bultos: número entero de bultos
-- hl: número decimal de hectolitros (buscar "hl")
-- comentario: texto adicional del motivo
-- sv: nombre del supervisor si aparece`;
+  // Prompt ULTRA corto para reducir tokens al mínimo
+  const prompt = `Extract JSON only:
+{
+  "numero_cliente": "num",
+  "cliente_nombre": "name",
+  "motivo": "from list: [${params.motivos.join(",")}]",
+  "chofer": "from list: [${params.choferes.join(",")}]",
+  "bultos": 0,
+  "hl": 0.0,
+  "comentario": "",
+  "sv": ""
+}`;
 
   const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
