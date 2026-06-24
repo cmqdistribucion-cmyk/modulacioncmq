@@ -624,3 +624,25 @@ export async function adminClearClientes() {
     clientesDeleted: typeof cliCount === "number" ? cliCount : null,
   };
 }
+
+export async function adminDeleteModulacionesByMonth(params: { month: number; year: number }) {
+  await requireAdmin();
+  const supabase = createSupabaseAdminClient();
+
+  const { month, year } = params;
+  if (month < 1 || month > 12) throw new Error("Mes inválido");
+  if (year < 2000) throw new Error("Año inválido");
+
+  // Definir el rango del mes
+  const startDate = new Date(Date.UTC(year, month - 1, 1)).toISOString();
+  const endDate = new Date(Date.UTC(year, month, 0, 23, 59, 59, 999)).toISOString();
+
+  const { error, count } = await supabase
+    .from("modulaciones")
+    .delete({ count: "exact" })
+    .gte("created_at", startDate)
+    .lte("created_at", endDate);
+
+  if (error) throw new Error(error.message);
+  return { deleted: typeof count === "number" ? count : 0 };
+}

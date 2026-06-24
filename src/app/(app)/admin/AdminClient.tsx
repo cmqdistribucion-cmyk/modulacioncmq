@@ -7,6 +7,7 @@ import {
   adminSetPassword,
   adminSetRole,
   adminUpsertPuntuaciones,
+  adminDeleteModulacionesByMonth,
 } from "./actions";
 import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
@@ -184,6 +185,7 @@ export function AdminClient() {
               </div>
             </div>
 
+            <DeleteModulacionesCard />
             <ImportPuntuaciones onImported={() => notify("Puntuaciones cargadas")} />
           </div>
         ) : null}
@@ -376,6 +378,92 @@ export function AdminClient() {
           </div>
         </div>
       </section>
+    </div>
+  );
+}
+
+function DeleteModulacionesCard() {
+  const [month, setMonth] = useState(new Date().getMonth() + 1);
+  const [year, setYear] = useState(new Date().getFullYear());
+  const [isPending, startTransition] = useTransition();
+  const [status, setStatus] = useState<{ type: "idle" | "success" | "error"; message?: string }>({ type: "idle" });
+
+  const months = [
+    { value: 1, label: "Enero" },
+    { value: 2, label: "Febrero" },
+    { value: 3, label: "Marzo" },
+    { value: 4, label: "Abril" },
+    { value: 5, label: "Mayo" },
+    { value: 6, label: "Junio" },
+    { value: 7, label: "Julio" },
+    { value: 8, label: "Agosto" },
+    { value: 9, label: "Septiembre" },
+    { value: 10, label: "Octubre" },
+    { value: 11, label: "Noviembre" },
+    { value: 12, label: "Diciembre" },
+  ];
+
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
+
+  async function handleDelete() {
+    if (!confirm(`¿Estás seguro de eliminar las modulaciones de ${months.find(m => m.value === month)?.label} ${year}? Esta acción no se puede deshacer.`)) {
+      return;
+    }
+
+    startTransition(async () => {
+      try {
+        const res = await adminDeleteModulacionesByMonth({ month, year });
+        setStatus({ type: "success", message: `Se eliminaron ${res.deleted} modulaciones.` });
+        setTimeout(() => setStatus({ type: "idle" }), 3000);
+      } catch (e) {
+        setStatus({ type: "error", message: e instanceof Error ? e.message : "Error al eliminar" });
+      }
+    });
+  }
+
+  return (
+    <div className="rounded-lg border border-border bg-background p-4">
+      <div className="text-sm font-semibold text-red-600 dark:text-red-400">Limpiar modulaciones</div>
+      <div className="mt-1 text-xs text-muted-foreground">
+        Elimina permanentemente las modulaciones de un mes específico.
+      </div>
+      
+      <div className="mt-3 grid grid-cols-2 gap-2">
+        <select
+          value={month}
+          onChange={(e) => setMonth(Number(e.target.value))}
+          className="rounded-md border border-border bg-background px-2 py-1.5 text-xs outline-none focus:ring-2 focus:ring-ring"
+        >
+          {months.map((m) => (
+            <option key={m.value} value={m.value}>{m.label}</option>
+          ))}
+        </select>
+        <select
+          value={year}
+          onChange={(e) => setYear(Number(e.target.value))}
+          className="rounded-md border border-border bg-background px-2 py-1.5 text-xs outline-none focus:ring-2 focus:ring-ring"
+        >
+          {years.map((y) => (
+            <option key={y} value={y}>{y}</option>
+          ))}
+        </select>
+      </div>
+
+      <button
+        type="button"
+        onClick={handleDelete}
+        disabled={isPending}
+        className="mt-3 inline-flex w-full items-center justify-center rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-100 disabled:opacity-60 dark:border-red-900/30 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/40"
+      >
+        {isPending ? "Eliminando..." : "Eliminar modulaciones"}
+      </button>
+
+      {status.type !== "idle" && (
+        <div className={`mt-2 rounded-md px-2 py-1.5 text-[10px] ${status.type === "success" ? "bg-green-50 text-green-600 border border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-900/30" : "bg-red-50 text-red-600 border border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30"}`}>
+          {status.message}
+        </div>
+      )}
     </div>
   );
 }
