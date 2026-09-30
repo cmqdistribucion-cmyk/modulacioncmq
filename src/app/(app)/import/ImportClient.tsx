@@ -62,7 +62,7 @@ function detectField(header: string) {
   if (key === "zona") return "zona";
   if (key === "msjenfra" || key === "mensajeenfactura" || key === "mensajefactura" || key === "msjenfactura") return "msj_en_fra";
   if (key === "pdvcriticochofer" || key === "pdvcritico" || key === "pdvchofer" || (key.includes("pdv") && key.includes("chofer"))) return "pdv_critico_chofer";
-  if (key === "feedbackpdv" || key === "feedback" || (key.includes("feedback") && key.includes("pdv"))) return "feedback_pdv";
+  if (key === "feedbackpdv" || key === "feedback" || key === "feedcackpdv" || (key.includes("feedback") && key.includes("pdv")) || (key.includes("feedcack") && key.includes("pdv"))) return "feedback_pdv";
 
   return null;
 }
