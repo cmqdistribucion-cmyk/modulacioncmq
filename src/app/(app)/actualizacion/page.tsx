@@ -22,6 +22,8 @@ type Row = {
   actualizacion: "rechazado" | "pendiente" | "entregado" | null;
   created_by_email: string | null;
   puntuacion: number | null;
+  pdv_critico_chofer: string | null;
+  feedback_pdv: string | null;
 };
 
 const OPTIONS: Array<NonNullable<Row["actualizacion"]>> = ["pendiente", "entregado", "rechazado"];
@@ -366,6 +368,8 @@ export default function ActualizacionPage() {
                     <th className="px-3 py-2">Motivo</th>
                     <th className="px-3 py-2">Chofer</th>
                     <th className="px-3 py-2 text-center">Bultos / HL</th>
+                    <th className="px-3 py-2">PDV Crítico Chofer</th>
+                    <th className="px-3 py-2">Feedback PDV</th>
                     <th className="px-3 py-2">Estado</th>
                   </tr>
                 </thead>
@@ -417,6 +421,16 @@ export default function ActualizacionPage() {
                       <td className="px-3 py-2 text-center">
                         <div className="font-medium">{r.bultos ?? "0"}</div>
                         <div className="text-[10px] text-blue-600 dark:text-blue-400 font-bold">{r.hl ? `${r.hl} HL` : "0 HL"}</div>
+                      </td>
+                      <td className="px-3 py-2">
+                        <div className="text-[10px] font-medium text-orange-600 dark:text-orange-400 truncate max-w-[100px]" title={r.pdv_critico_chofer ?? ""}>
+                          {r.pdv_critico_chofer ?? "—"}
+                        </div>
+                      </td>
+                      <td className="px-3 py-2">
+                        <div className="text-[10px] font-medium text-green-600 dark:text-green-400 truncate max-w-[100px]" title={r.feedback_pdv ?? ""}>
+                          {r.feedback_pdv ?? "—"}
+                        </div>
                       </td>
                       <td className="px-3 py-2">
                         <select

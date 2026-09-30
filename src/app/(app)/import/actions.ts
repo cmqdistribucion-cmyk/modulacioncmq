@@ -13,6 +13,8 @@ export type ClienteUpsert = {
   telefono?: string | null;
   zona?: string | null;
   msj_en_fra?: string | null;
+  pdv_critico_chofer?: string | null;
+  feedback_pdv?: string | null;
 };
 
 export async function upsertClientes(params: { rows: ClienteUpsert[] }) {

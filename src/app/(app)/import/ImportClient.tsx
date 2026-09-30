@@ -61,6 +61,8 @@ function detectField(header: string) {
   if (key === "telefono" || key === "tel" || key === "celular") return "telefono";
   if (key === "zona") return "zona";
   if (key === "msjenfra" || key === "mensajeenfactura" || key === "mensajefactura" || key === "msjenfactura") return "msj_en_fra";
+  if (key === "pdvcriticochofer" || key === "pdvcritico" || key === "pdvchofer" || (key.includes("pdv") && key.includes("chofer"))) return "pdv_critico_chofer";
+  if (key === "feedbackpdv" || key === "feedback" || (key.includes("feedback") && key.includes("pdv"))) return "feedback_pdv";
 
   return null;
 }
@@ -103,6 +105,8 @@ function buildRows(rawRows: Record<string, unknown>[], mapping: Mapping) {
         "telefono",
         "zona",
         "msj_en_fra",
+        "pdv_critico_chofer",
+        "feedback_pdv",
       ] as const;
 
       for (const key of optionalFields) {
@@ -418,6 +422,22 @@ function ImportControls(props: {
               headers={props.headers}
               onChange={(v) =>
                 props.onChangeMapping({ ...props.mapping, msj_en_fra: v || undefined })
+              }
+            />
+            <MappingSelect
+              label="PDV Crítico Chofer"
+              value={props.mapping.pdv_critico_chofer ?? ""}
+              headers={props.headers}
+              onChange={(v) =>
+                props.onChangeMapping({ ...props.mapping, pdv_critico_chofer: v || undefined })
+              }
+            />
+            <MappingSelect
+              label="Feedback PDV"
+              value={props.mapping.feedback_pdv ?? ""}
+              headers={props.headers}
+              onChange={(v) =>
+                props.onChangeMapping({ ...props.mapping, feedback_pdv: v || undefined })
               }
             />
           </div>

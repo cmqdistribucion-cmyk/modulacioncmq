@@ -53,6 +53,8 @@ function formatWhatsappText(params: {
     params.cliente.vendedor ? `Vendedor: ${params.cliente.vendedor}` : null,
     params.cliente.sv ? `SV: ${params.cliente.sv}` : null,
     params.cliente.msj_en_fra ? `MSJ en FRA: *${params.cliente.msj_en_fra}*` : null,
+    params.cliente.pdv_critico_chofer ? `PDV Crítico Chofer: *${params.cliente.pdv_critico_chofer}*` : null,
+    params.cliente.feedback_pdv ? `Feedback PDV: *${params.cliente.feedback_pdv}*` : null,
     ``,
     `Motivo: *${params.input.motivo}*`,
     `Chofer: *${params.input.chofer}*`,
@@ -418,22 +420,24 @@ export function DashboardClient() {
         let data: any[] | null = null;
         let error: any = null;
         
-        const { data: dataWithMsj, error: errorWithMsj } = await supabase
+        const { data: dataWithNewCols, error: errorWithNewCols } = await supabase
           .from("clientes")
           .select(
-            "id,title,numero_cliente,nombre,domicilio,vendedor,sv,telefono,zona,msj_en_fra",
+            "id,title,numero_cliente,nombre,domicilio,vendedor,sv,telefono,zona,msj_en_fra,pdv_critico_chofer,feedback_pdv",
           )
           .or(`numero_cliente.ilike.%${q}%,nombre.ilike.%${q}%`)
           .order("nombre", { ascending: true })
           .limit(12)
           .abortSignal(controller.signal);
         
-        if (errorWithMsj && errorWithMsj.message && (
-          errorWithMsj.message.includes("msj_en_fra") || 
-          errorWithMsj.message.includes("does not exist")
+        if (errorWithNewCols && errorWithNewCols.message && (
+          errorWithNewCols.message.includes("msj_en_fra") ||
+          errorWithNewCols.message.includes("pdv_critico_chofer") ||
+          errorWithNewCols.message.includes("feedback_pdv") ||
+          errorWithNewCols.message.includes("does not exist")
         )) {
-          // Si falla por msj_en_fra, volvemos a intentar sin la columna
-          const { data: dataWithoutMsj, error: errorWithoutMsj } = await supabase
+          // Si falla por las nuevas columnas, volvemos a intentar sin ellas
+          const { data: dataWithoutNewCols, error: errorWithoutNewCols } = await supabase
             .from("clientes")
             .select(
               "id,title,numero_cliente,nombre,domicilio,vendedor,sv,telefono,zona",
@@ -443,15 +447,20 @@ export function DashboardClient() {
             .limit(12)
             .abortSignal(controller.signal);
           
-          if (errorWithoutMsj) {
-            error = errorWithoutMsj;
+          if (errorWithoutNewCols) {
+            error = errorWithoutNewCols;
           } else {
-            // Agregamos msj_en_fra: null a cada resultado
-            data = (dataWithoutMsj ?? []).map(item => ({ ...item, msj_en_fra: null }));
+            // Agregamos las nuevas columnas como null a cada resultado
+            data = (dataWithoutNewCols ?? []).map(item => ({
+              ...item,
+              msj_en_fra: null,
+              pdv_critico_chofer: null,
+              feedback_pdv: null
+            }));
           }
         } else {
-          data = dataWithMsj;
-          error = errorWithMsj;
+          data = dataWithNewCols;
+          error = errorWithNewCols;
         }
 
         if (cancelled) return;
@@ -746,7 +755,7 @@ export function DashboardClient() {
         if (s.session) {
           const byEq = await supabase
             .from("clientes")
-            .select("id,title,numero_cliente,nombre,domicilio,vendedor,sv,telefono,zona")
+            .select("id,title,numero_cliente,nombre,domicilio,vendedor,sv,telefono,zona,pdv_critico_chofer,feedback_pdv")
             .eq("numero_cliente", found)
             .limit(1)
             .maybeSingle();
@@ -755,7 +764,7 @@ export function DashboardClient() {
           } else {
             const byLike = await supabase
               .from("clientes")
-              .select("id,title,numero_cliente,nombre,domicilio,vendedor,sv,telefono,zona")
+              .select("id,title,numero_cliente,nombre,domicilio,vendedor,sv,telefono,zona,pdv_critico_chofer,feedback_pdv")
               .ilike("numero_cliente", `%${found}%`)
               .order("nombre", { ascending: true })
               .limit(1)
@@ -789,6 +798,8 @@ export function DashboardClient() {
         telefono: null,
         zona: null,
         msj_en_fra: null,
+        pdv_critico_chofer: null,
+        feedback_pdv: null,
       };
 
       if (cliente) {
@@ -1011,6 +1022,16 @@ export function DashboardClient() {
                         MSJ en FRA: {c.msj_en_fra}
                       </div>
                     ) : null}
+                    {c.pdv_critico_chofer ? (
+                      <div className="truncate text-xs font-bold text-orange-600 dark:text-orange-400">
+                        PDV Crítico Chofer: {c.pdv_critico_chofer}
+                      </div>
+                    ) : null}
+                    {c.feedback_pdv ? (
+                      <div className="truncate text-xs font-bold text-green-600 dark:text-green-400">
+                        Feedback PDV: {c.feedback_pdv}
+                      </div>
+                    ) : null}
                     {scores.length ? (
                       <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                         <span className="font-medium text-card-foreground">
@@ -1156,6 +1177,12 @@ export function DashboardClient() {
                 <div>SV: {selected.sv ?? "—"}</div>
                 {selected.msj_en_fra ? (
                   <div className="font-bold text-red-600 dark:text-red-400">MSJ en FRA: {selected.msj_en_fra}</div>
+                ) : null}
+                {selected.pdv_critico_chofer ? (
+                  <div className="font-bold text-orange-600 dark:text-orange-400">PDV Crítico Chofer: {selected.pdv_critico_chofer}</div>
+                ) : null}
+                {selected.feedback_pdv ? (
+                  <div className="font-bold text-green-600 dark:text-green-400">Feedback PDV: {selected.feedback_pdv}</div>
                 ) : null}
                 <div className="flex items-center gap-2">
                   Puntuación:{" "}

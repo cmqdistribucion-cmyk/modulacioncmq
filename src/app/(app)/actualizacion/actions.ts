@@ -53,11 +53,13 @@ export async function listModulacionesByDate(params: { date: string }) {
     }
   }
 
-  // Obtener puntuaciones (RMD) y msj_en_fra para estos clientes
+  // Obtener puntuaciones (RMD), msj_en_fra, pdv_critico_chofer y feedback_pdv para estos clientes
   const items = resultData ?? [];
   const numeros = Array.from(new Set(items.map((r: any) => r.cliente_numero)));
   const scores: Record<string, number> = {};
   const msjEnFra: Record<string, string | null> = {};
+  const pdvCriticoChofer: Record<string, string | null> = {};
+  const feedbackPdv: Record<string, string | null> = {};
   
   if (numeros.length > 0) {
     const { data: scoreData } = await supabase
@@ -74,28 +76,32 @@ export async function listModulacionesByDate(params: { date: string }) {
       });
     }
 
-    // Obtener msj_en_fra de clientes (con fallback)
+    // Obtener msj_en_fra, pdv_critico_chofer y feedback_pdv de clientes (con fallback)
     try {
       const { data: clienteData } = await supabase
         .from("clientes")
-        .select("numero_cliente,msj_en_fra")
+        .select("numero_cliente,msj_en_fra,pdv_critico_chofer,feedback_pdv")
         .in("numero_cliente", numeros);
       
       if (clienteData) {
         clienteData.forEach(c => {
           msjEnFra[c.numero_cliente] = c.msj_en_fra;
+          pdvCriticoChofer[c.numero_cliente] = c.pdv_critico_chofer;
+          feedbackPdv[c.numero_cliente] = c.feedback_pdv;
         });
       }
     } catch (e) {
-      // Si falla porque msj_en_fra no existe, dejamos msjEnFra como null para todos
-      console.log("msj_en_fra no existe en la base de datos aún");
+      // Si falla porque las columnas no existen, dejamos los valores como null para todos
+      console.log("Columnas nuevas no existen en la base de datos aún");
     }
   }
 
   return items.map((r: any) => ({
     ...r,
     puntuacion: scores[r.cliente_numero] ?? null,
-    msj_en_fra: msjEnFra[r.cliente_numero] ?? null
+    msj_en_fra: msjEnFra[r.cliente_numero] ?? null,
+    pdv_critico_chofer: pdvCriticoChofer[r.cliente_numero] ?? null,
+    feedback_pdv: feedbackPdv[r.cliente_numero] ?? null
   })) as Array<Record<string, unknown>>;
 }
 
@@ -140,26 +146,32 @@ export async function listModulacionesByClienteNumero(params: { clienteNumero: s
     >;
   }
 
-  // Obtener msj_en_fra para este cliente (con fallback)
+  // Obtener msj_en_fra, pdv_critico_chofer y feedback_pdv para este cliente (con fallback)
   let msjEnFra: string | null = null;
+  let pdvCriticoChofer: string | null = null;
+  let feedbackPdv: string | null = null;
   try {
     const { data: clienteData } = await supabase
       .from("clientes")
-      .select("msj_en_fra")
+      .select("msj_en_fra,pdv_critico_chofer,feedback_pdv")
       .eq("numero_cliente", numero)
       .single();
     
     if (clienteData) {
       msjEnFra = clienteData.msj_en_fra;
+      pdvCriticoChofer = clienteData.pdv_critico_chofer;
+      feedbackPdv = clienteData.feedback_pdv;
     }
   } catch (e) {
-    // Si falla porque msj_en_fra no existe, dejamos msjEnFra como null
-    console.log("msj_en_fra no existe en la base de datos aún");
+    // Si falla porque las columnas no existen, dejamos los valores como null
+    console.log("Columnas nuevas no existen en la base de datos aún");
   }
 
   return (resultData ?? []).map((r: any) => ({
     ...r,
-    msj_en_fra: msjEnFra
+    msj_en_fra: msjEnFra,
+    pdv_critico_chofer: pdvCriticoChofer,
+    feedback_pdv: feedbackPdv
   })) as Array<Record<string, unknown>>;
 }
 
