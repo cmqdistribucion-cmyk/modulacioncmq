@@ -1,6 +1,7 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 Desplegado en Vercel - 2026-09-30
+Nuevo despliegue forzado
 
 ## Getting Started
 
