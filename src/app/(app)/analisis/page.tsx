@@ -6,6 +6,8 @@ export const metadata = {
   title: "Análisis de Datos",
 };
 
+export const dynamic = 'force-dynamic';
+
 export default async function AnalisisPage() {
   const admin = await isAdmin();
   if (!admin) {
