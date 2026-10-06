@@ -47,6 +47,8 @@ function formatWhatsappText(params: {
     ``,
     `Cliente: *${params.cliente.numero_cliente}*`,
     params.cliente.nombre ? `Nombre: ${params.cliente.nombre}` : null,
+    params.cliente.vendedor ? `Vendedor: ${params.cliente.vendedor}` : null,
+    params.cliente.sv ? `SV: ${params.cliente.sv}` : null,
     ``,
     `Motivo: *${params.input.motivo}*`,
     `Chofer: *${params.input.chofer}*`,
