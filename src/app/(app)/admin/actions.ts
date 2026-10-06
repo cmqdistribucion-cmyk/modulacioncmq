@@ -456,7 +456,7 @@ export async function adminTestWhatsappGroup(params: { id: string }) {
     .eq("id", params.id)
     .limit(1)
     .maybeSingle();
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(`Error de base de datos: ${error.message}`);
   if (!data) throw new Error("Grupo no encontrado");
   if (!data.active) throw new Error("Grupo inactivo");
   let groupId = data.group_id ? String(data.group_id) : "";
@@ -468,16 +468,22 @@ export async function adminTestWhatsappGroup(params: { id: string }) {
         await supabase.from("whatsapp_groups").update({ group_id: groupId }).eq("id", data.id);
       }
     } catch (linkError) {
+      const errorMsg = linkError instanceof Error ? linkError.message : String(linkError);
       console.error("Error al resolver group_id desde link:", linkError);
-      // Continuar sin el group_id resuelto
+      throw new Error(`Error al resolver el link del grupo. Verificá que el link sea válido: ${errorMsg}`);
     }
   }
-  if (!groupId) throw new Error("Falta group_id en el grupo");
+  if (!groupId) throw new Error("Falta group_id en el grupo. Agregá un link de invitación válido o el ID del grupo manualmente.");
 
-  await whapiSendText({
-    to: groupId,
-    body: "Hola, grupo vinculado con éxito",
-  });
+  try {
+    await whapiSendText({
+      to: groupId,
+      body: "Hola, grupo vinculado con éxito",
+    });
+  } catch (sendError) {
+    const errorMsg = sendError instanceof Error ? sendError.message : String(sendError);
+    throw new Error(`Error al enviar mensaje de prueba: ${errorMsg}`);
+  }
 }
 
 export type PuntuacionRow = {
