@@ -196,6 +196,7 @@ function WhatsappGroupsCard() {
       notify("Test enviado");
       setStatus({ type: "done" });
     } catch (e) {
+      console.error("Error en onTest:", e);
       setStatus({
         type: "error",
         message: e instanceof Error ? e.message : "Error en test",

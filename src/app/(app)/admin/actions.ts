@@ -427,18 +427,23 @@ async function whapiSendText(params: { to: string; body: string }) {
   );
   if (!token) throw new Error("Falta WHAPI_TOKEN en el servidor");
 
-  const res = await fetch(`${baseUrl}/messages/text`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ to: params.to, body: params.body }),
-  });
+  try {
+    const res = await fetch(`${baseUrl}/messages/text`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ to: params.to, body: params.body }),
+    });
 
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(`WhatsApp API: ${res.status} ${text || res.statusText}`);
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(`WhatsApp API: ${res.status} ${text || res.statusText}`);
+    }
+  } catch (error) {
+    console.error("Error en whapiSendText:", error);
+    throw error;
   }
 }
 
@@ -456,10 +461,15 @@ export async function adminTestWhatsappGroup(params: { id: string }) {
   if (!data.active) throw new Error("Grupo inactivo");
   let groupId = data.group_id ? String(data.group_id) : "";
   if (!groupId && data.group_link) {
-    const resolved = await whapiGetGroupIdByInviteLink(String(data.group_link));
-    if (resolved) {
-      groupId = resolved;
-      await supabase.from("whatsapp_groups").update({ group_id: groupId }).eq("id", data.id);
+    try {
+      const resolved = await whapiGetGroupIdByInviteLink(String(data.group_link));
+      if (resolved) {
+        groupId = resolved;
+        await supabase.from("whatsapp_groups").update({ group_id: groupId }).eq("id", data.id);
+      }
+    } catch (linkError) {
+      console.error("Error al resolver group_id desde link:", linkError);
+      // Continuar sin el group_id resuelto
     }
   }
   if (!groupId) throw new Error("Falta group_id en el grupo");

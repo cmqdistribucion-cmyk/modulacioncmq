@@ -3,7 +3,12 @@ import { redirect } from "next/navigation";
 import { ConfiguracionClient } from "./ConfiguracionClient";
 
 export default async function ConfiguracionPage() {
-  const admin = await isAdmin();
-  if (!admin) redirect("/dashboard");
-  return <ConfiguracionClient />;
+  try {
+    const admin = await isAdmin();
+    if (!admin) redirect("/dashboard");
+    return <ConfiguracionClient />;
+  } catch (error) {
+    console.error("Error en ConfiguracionPage:", error);
+    redirect("/dashboard");
+  }
 }
