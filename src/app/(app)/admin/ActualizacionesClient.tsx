@@ -37,6 +37,8 @@ export function ActualizacionesClient() {
 
         {openGestion ? (
           <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
+            <SearchEditClienteCard />
+
             <div className="rounded-lg border border-border bg-background p-4">
               <div className="text-sm font-semibold">Accesos rápidos</div>
               <div className="mt-2 flex flex-col gap-2">
@@ -62,7 +64,6 @@ export function ActualizacionesClient() {
               </div>
             </div>
 
-            <SearchEditClienteCard />
             <ClearClientesCard />
             <ImportPuntuaciones />
           </div>
