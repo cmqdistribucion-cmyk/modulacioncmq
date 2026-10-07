@@ -7,6 +7,8 @@ import { useState } from "react";
 import {
   adminClearClientes,
   adminClearPuntuaciones,
+  adminSearchCliente,
+  adminUpdateCliente,
   adminUpsertPuntuaciones,
   type PuntuacionRow,
 } from "../admin/actions";
@@ -60,6 +62,7 @@ export function ActualizacionesClient() {
               </div>
             </div>
 
+            <SearchEditClienteCard />
             <ClearClientesCard />
             <ImportPuntuaciones />
           </div>
@@ -499,6 +502,252 @@ function ImportPuntuaciones() {
           {clearMsg}
         </div>
       ) : null}
+    </div>
+  );
+}
+
+function SearchEditClienteCard() {
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<any[]>([]);
+  const [selected, setSelected] = useState<any | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [saveMsg, setSaveMsg] = useState<string | null>(null);
+
+  const [formData, setFormData] = useState({
+    numero_cliente: "",
+    nombre: "",
+    domicilio: "",
+    telefono: "",
+    vendedor: "",
+    sv: "",
+    zona: "",
+  });
+
+  async function handleSearch() {
+    if (!query.trim()) return;
+    setLoading(true);
+    setError(null);
+    setResults([]);
+    setSelected(null);
+    try {
+      const data = await adminSearchCliente({ query });
+      setResults(data);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Error al buscar");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function handleSelect(cliente: any) {
+    setSelected(cliente);
+    setFormData({
+      numero_cliente: cliente.numero_cliente || "",
+      nombre: cliente.nombre || "",
+      domicilio: cliente.domicilio || "",
+      telefono: cliente.telefono || "",
+      vendedor: cliente.vendedor || "",
+      sv: cliente.sv || "",
+      zona: cliente.zona || "",
+    });
+  }
+
+  async function handleSave() {
+    if (!selected) return;
+    setSaving(true);
+    setSaveMsg(null);
+    try {
+      await adminUpdateCliente({
+        id: selected.id,
+        ...formData,
+      });
+      setSaveMsg("Cliente actualizado correctamente");
+      setSelected({ ...selected, ...formData });
+    } catch (e) {
+      setSaveMsg(e instanceof Error ? e.message : "Error al guardar");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="rounded-lg border border-border bg-background p-4">
+      <div className="text-sm font-semibold">Buscar y editar cliente</div>
+      <div className="mt-1 text-sm text-muted-foreground">
+        Buscá por número de cliente o nombre para modificar sus datos.
+      </div>
+
+      <div className="mt-3 flex gap-2">
+        <input
+          type="text"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && void handleSearch()}
+          placeholder="Nº de cliente o nombre"
+          className="flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+        />
+        <button
+          type="button"
+          onClick={() => void handleSearch()}
+          disabled={loading}
+          className="inline-flex items-center justify-center rounded-md bg-foreground px-3 py-2 text-sm font-medium text-background hover:opacity-95 disabled:opacity-60"
+        >
+          {loading ? "Buscando..." : "Buscar"}
+        </button>
+      </div>
+
+      {error && (
+        <div className="mt-2 rounded-md border border-border bg-muted px-3 py-2 text-sm text-muted-foreground">
+          {error}
+        </div>
+      )}
+
+      {results.length > 0 && !selected && (
+        <div className="mt-3 max-h-40 overflow-auto rounded-lg border border-border">
+          <div className="border-b border-border bg-card px-3 py-2 text-sm font-medium">
+            Resultados ({results.length})
+          </div>
+          <div className="divide-y divide-border">
+            {results.map((c) => (
+              <button
+                key={c.id}
+                type="button"
+                onClick={() => handleSelect(c)}
+                className="w-full px-3 py-2 text-left text-sm hover:bg-muted transition-colors"
+              >
+                <div className="font-medium">{c.numero_cliente}</div>
+                <div className="text-muted-foreground">{c.nombre || "—"}</div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {selected && (
+        <div className="mt-3 space-y-2">
+          <div className="border-b border-border pb-2">
+            <div className="text-sm font-medium">Editando: {selected.numero_cliente}</div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <div>
+              <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                Nº de cliente
+              </label>
+              <input
+                type="text"
+                value={formData.numero_cliente}
+                onChange={(e) => setFormData({ ...formData, numero_cliente: e.target.value })}
+                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                Nombre
+              </label>
+              <input
+                type="text"
+                value={formData.nombre}
+                onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
+                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                Domicilio
+              </label>
+              <input
+                type="text"
+                value={formData.domicilio}
+                onChange={(e) => setFormData({ ...formData, domicilio: e.target.value })}
+                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                Teléfono
+              </label>
+              <input
+                type="text"
+                value={formData.telefono}
+                onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
+                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                Vendedor
+              </label>
+              <input
+                type="text"
+                value={formData.vendedor}
+                onChange={(e) => setFormData({ ...formData, vendedor: e.target.value })}
+                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                SV (Supervisor)
+              </label>
+              <input
+                type="text"
+                value={formData.sv}
+                onChange={(e) => setFormData({ ...formData, sv: e.target.value })}
+                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                Zona
+              </label>
+              <input
+                type="text"
+                value={formData.zona}
+                onChange={(e) => setFormData({ ...formData, zona: e.target.value })}
+                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+              />
+            </div>
+          </div>
+
+          <div className="flex gap-2 pt-2">
+            <button
+              type="button"
+              onClick={() => void handleSave()}
+              disabled={saving}
+              className="inline-flex items-center justify-center rounded-md bg-foreground px-3 py-2 text-sm font-medium text-background hover:opacity-95 disabled:opacity-60"
+            >
+              {saving ? "Guardando..." : "Guardar cambios"}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setSelected(null);
+                setResults([]);
+                setFormData({
+                  numero_cliente: "",
+                  nombre: "",
+                  domicilio: "",
+                  telefono: "",
+                  vendedor: "",
+                  sv: "",
+                  zona: "",
+                });
+              }}
+              className="inline-flex items-center justify-center rounded-md border border-border bg-card px-3 py-2 text-sm hover:bg-muted"
+            >
+              Cancelar
+            </button>
+          </div>
+
+          {saveMsg && (
+            <div className="rounded-md border border-border bg-muted px-3 py-2 text-sm text-muted-foreground">
+              {saveMsg}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

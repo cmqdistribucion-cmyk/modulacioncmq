@@ -641,6 +641,55 @@ export async function adminClearClientes() {
   };
 }
 
+export async function adminSearchCliente(params: { query: string }) {
+  await requireAdmin();
+  const supabase = createSupabaseAdminClient();
+
+  const q = params.query.trim();
+  if (!q) throw new Error("Ingresá un número de cliente o nombre");
+
+  const { data, error } = await supabase
+    .from("clientes")
+    .select("*")
+    .or(`numero_cliente.ilike.%${q}%,nombre.ilike.%${q}%`)
+    .limit(10);
+
+  if (error) throw new Error(error.message);
+
+  return data ?? [];
+}
+
+export async function adminUpdateCliente(params: {
+  id: string;
+  numero_cliente: string;
+  nombre: string | null;
+  domicilio: string | null;
+  telefono: string | null;
+  vendedor: string | null;
+  sv: string | null;
+  zona: string | null;
+}) {
+  await requireAdmin();
+  const supabase = createSupabaseAdminClient();
+
+  const { error } = await supabase
+    .from("clientes")
+    .update({
+      numero_cliente: params.numero_cliente,
+      nombre: params.nombre,
+      domicilio: params.domicilio,
+      telefono: params.telefono,
+      vendedor: params.vendedor,
+      sv: params.sv,
+      zona: params.zona,
+    })
+    .eq("id", params.id);
+
+  if (error) throw new Error(error.message);
+
+  return { success: true };
+}
+
 export async function adminDeleteModulacionesByMonth(params: { month: number; year: number }) {
   await requireAdmin();
   const supabase = createSupabaseAdminClient();
