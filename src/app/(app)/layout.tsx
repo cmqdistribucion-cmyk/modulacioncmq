@@ -53,6 +53,9 @@ export default async function AppLayout({
             <div className="truncate text-sm text-white/80">
               Gestión logística
             </div>
+            <div className="truncate text-xs text-white/60">
+              consultas: techprosoftware3@gmail.com
+            </div>
           </div>
           <div className="flex items-center gap-3">
             <Link
