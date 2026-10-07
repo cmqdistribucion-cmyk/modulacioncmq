@@ -108,7 +108,7 @@ export default async function AppLayout({
       <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-6">
         {children}
       </main>
-      <footer className="border-t border-white/10 text-white/60 text-center py-4 text-sm">
+      <footer className="border-t border-white/20 text-white/60 text-center py-2 text-xs">
         consultas: techprosoftware3@gmail.com
       </footer>
     </div>
